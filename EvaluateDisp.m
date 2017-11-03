@@ -33,7 +33,7 @@ if ImageStruct.type
             
             badPixles=abs(LEstDisp-imgGT) > tau;%thid size
             badPixles(~imgMask) = 0;
-            dispError=sum(badPixles(:))/sum(imgMask(:));
+            dispError=sum(badPixles(:))/(size(imgGT,1)*size(imgGT,2));
         
         case 'Middlebury2005'
             imgGT=imread(ImageStruct.LDispOcc);
@@ -42,7 +42,7 @@ if ImageStruct.type
             
             badPixles=abs(LEstDisp-imgGT) > tau;%thid size
             badPixles(~imgMask) = 0;
-            dispError=sum(badPixles(:))/sum(imgMask(:));
+            dispError=sum(badPixles(:))/(size(imgGT,1)*size(imgGT,2));
         
         case 'KITTI2012'
             I = imread(ImageStruct.LDispNoc);
