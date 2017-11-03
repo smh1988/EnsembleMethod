@@ -41,7 +41,7 @@ display ('calculating disparities...');
 data=struct;
 dispData=struct;
 tau=1; %error threshold
-imagesList = [700:703];%real image mumbers in AllImages------------------------------------HARD CODED
+imagesList = [710:710];%real image mumbers in AllImages------------------------------------HARD CODED
 for imgNum=1:size(imagesList,2) %local image numbers
     imgL=imread(AllImages(imagesList(imgNum)).LImage);
     imgR=imread(AllImages(imagesList(imgNum)).RImage);
@@ -196,9 +196,9 @@ display('testing...');
 testInput=input(1+sum(imgPixelCountTrain):end,:,:);
 testClass=class(1+sum(imgPixelCountTrain):end,:);%for AUC calculations
 for i=1:m
-    [labels,scores] = predict(RFs(i).model,testInput(:,:,i));
+    [labels,confidence] = predict(RFs(i).model,testInput(:,:,i));
     %[RFs(i).labels,RFs(i).scores] = predict(RFs(i).model,testInput(:,:,i),'Trees',10:20);
-    finalScores(i,:)=scores(:,2);
+    finalScores(i,:)=confidence(:,2);
     finalLabels(i,:)=labels;
 end
 [values, indices]=max(finalScores);
@@ -216,17 +216,17 @@ for testImgNum=1:size(imgPixelCountTest,2)
     finalDisp=zeros(imgW,imgH);
     for x=1:imgW
         for y=1:imgH
-            %if Results(testImgNum).Values(x,y)>0.6
             finalDisp(x,y)=dispData(Results(testImgNum).Indices(x,y),imgNum).left(x,y);
-            %else
-            %    finalDisp(x,y)=180; %low confidence regions
-            %end
         end
     end
     Results(testImgNum).FinalDisp=finalDisp;
     %imshow(finalDisp,[]);
     %waitforbuttonpress;
     Results(testImgNum).Error=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp,tau);
+    [roc,pers]=GetROC(AllImages(imagesList(imgNum)),finalDisp,Results(testImgNum).Values);
+    Results(testImgNum).ROC=roc;
+    %The trapz function overestimates the value of the integral when f(x) is concave up.
+    Results(testImgNum).AUC=GetAUC(roc,pers);
     
     %% other stuff
     %best possible error
