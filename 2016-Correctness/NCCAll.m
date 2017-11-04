@@ -7,8 +7,8 @@ maxdisp=DisparityRange(2);
 w=5;
 halfW=(w-1)/2;
 
-imgL=rgb2gray(imgL);%for now they are not seperated
-imgR=rgb2gray(imgR);
+imgL=double(rgb2gray(imgL))/255;%for now they are not seperated
+imgR=double(rgb2gray(imgR))/255;
 
 imgL=permute(imgL,[2 1 3]);
 imgR=permute(imgR,[2 1 3]);
@@ -31,12 +31,12 @@ CostVol = zeros (size(imgL,1),size(imgL,2),maxdisp);
 %MMN=zeros(size(imgL));
 
 %TODO: using arrayfun
+costs=zeros(maxdisp,1);
 for x=1+halfW+maxdisp:size(imgL,1)-halfW-maxdisp
     for y=1+halfW:size(imgL,2)-halfW
         roiL=imgL((x-halfW):(x+halfW),(y-halfW):(y+halfW));
         meanL=meansL(x,y);
         stdL=stdsL(x,y);
-        costs=zeros(maxdisp,1);
         for d=1:maxdisp
             %Cost computing ->NCC
             sum1=0;
@@ -46,10 +46,10 @@ for x=1+halfW+maxdisp:size(imgL,1)-halfW-maxdisp
             stdR=stdsR(x-d,y);
             for i=1:w
                 for j=1:w %notation of the paper was not good!
-                    sum1=sum1-(roiL(i,j)-meanL)*(roiR(i,j)-meanR);
+                    sum1=sum1+(roiL(i,j)-meanL)*(roiR(i,j)-meanR);
                 end
             end
-            costs(d)=sum1/(stdL*stdR);
+            costs(d)=-(sum1/25)/(stdL*stdR);%FIX: this is not mentioned in the paper that it should be devided by w*w, while all plots are [0 1]!
         end
         %cost volume
         CostVol(x,y,:)=costs;
@@ -58,7 +58,7 @@ end
 
 %cropping and transposing
 CostVolume=permute(conj(CostVol(1+halfW+maxdisp:size(imgL,1)-halfW-maxdisp,1+halfW:size(imgL,2)-halfW,:)),[2 1 3]);
-
+CostVolume(isinf(CostVolume))=1;
 
 tmpCostVol=CostVolume;
 tmpCostVol(tmpCostVol>0)=0;%All positive cost values are truncated to 0.
