@@ -1,7 +1,7 @@
 %% DESCRIPTION
 % Dataset: any
-% images: not sliced
-% features: DD LRC MED ai TS
+% images: from dataset
+% features: DD LRC MED ai TS DB
 % algorithms: implemented
 % classifier: TreeBagger
 
