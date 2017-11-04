@@ -64,6 +64,7 @@ tmpCostVol=CostVolume;
 tmpCostVol(tmpCostVol>0)=0;%All positive cost values are truncated to 0.
 %minimum matching cost and WTA
 [ Cost ,imgL_d]=min(tmpCostVol,[],3); 
+Cost=-Cost;%this could be also a confidence measure
 
 %Maximum Margin
 sortedCostVol =sort(CostVolume,3);
