@@ -1,7 +1,7 @@
 %% DESCRIPTION
 % Dataset: any
 % images: from dataset
-% features: DD LRC MED ai TS DB
+% features: DD LRC MED ai TS
 % algorithms: implemented
 % classifier: TreeBagger
 
@@ -18,12 +18,12 @@ DatasetDir;
 %loading all functions in arrays
 FunctionsDir;
 
-algosNum = [ 4 5 9 10 11] ;
+algosNum = [ 4 5 9 10 11] ;                                 %<<<-----------------------HARD CODED
 %select desired algorithms from the list below and put its number in the list
 %1-ADSM  2-ARWSM 3-BMSM  4-BSM   5-ELAS  6-FCVFSM   7-SGSM  8-SSCA  9-WCSM
 %10-MeshSM 11-NCC
 
-featuresNum= [1 2 3];
+%featuresNum= [1 2 3];
 %select desired features from the list below and put its number in the list
 %   1-CE    2-CANNY 3-FNVE  4-GRAYCONNECTED 5-HA    6-HARRISCORNERPOINTS    7-HOG   8-LABELEDREGIONS    9-RD    10-SOBEL    11-SP   12-SURFF
 
@@ -31,7 +31,7 @@ addpath('2016-Correctness'); %features should be floats in range [0 1]
 featureFunc{1}=str2func('DD');%overriding features
 featureFunc{2}=str2func('LRC');
 featureFunc{3}=str2func('MED');
-featureFunc{4}=str2func('DB');
+%featureFunc{4}=str2func('DB');
 %MMN, AML, LRD are not usefull here since we do not have cost volumes of other algorithms
 
 
@@ -41,7 +41,12 @@ display ('calculating disparities...');
 data=struct;
 dispData=struct;
 tau=1; %error threshold
-imagesList = [710:710];%real image mumbers in AllImages------------------------------------HARD CODED
+
+%real image mumbers in AllImages
+trainImageList=[709];                                   %<<<-----------------------HARD CODED
+testImageList=[710];                                        %<<<-----------------------HARD CODED
+imagesList = [ trainImageList ,testImageList];
+
 for imgNum=1:size(imagesList,2) %local image numbers
     imgL=imread(AllImages(imagesList(imgNum)).LImage);
     imgR=imread(AllImages(imagesList(imgNum)).RImage);
@@ -68,7 +73,7 @@ for imgNum=1:size(imagesList,2) %local image numbers
     end
     display([num2str(imagesList(imgNum)) 'done']);
 end
-
+clear algoCount aNum data fileName
 %checking every result
 % for i=1:m
 % imshow(dispData(i,2).left,[]);
@@ -132,7 +137,7 @@ for imgNum=1:size(imagesList,2)
         display(['making data for algorithm number ', num2str(i)]);
         for x=1:size(dispData(i,imgNum).left,1)
             for y=1:size(dispData(i,imgNum).left,2)
-                %considering non-occluded pixels (SHOULD WE????)
+                %FIX: considering non-occluded pixels (SHOULD WE????)
                 %if imgMask(x,y)==1
                 pCount=pCount+1;
                 tmpCount=0;% always reachs to m-1
@@ -148,7 +153,7 @@ for imgNum=1:size(imagesList,2)
 %                 input(pCount,15,i)=sum (  input(pCount,1:tmpCount,i)==1);%TS
 %                 input(pCount,16:20,i)=squeeze(MED(x,y,:));
 
-                %only using its own features
+                %only using its own features                %<<<-----------------------HARD CODED
                 input(pCount,5,i)=squeeze(DD(x,y,i));%DD
                 input(pCount,6,i)=squeeze(LRC(x,y,i));%LRC
                 input(pCount,7,i)=sum (input(pCount,1:tmpCount,i)==1);%TS
@@ -163,14 +168,15 @@ for imgNum=1:size(imagesList,2)
     totalPCount=pCount;
     display([num2str(imagesList(imgNum)) ' done']);
 end
+clear width height agreementMat DD LRC MED imgGT pCount tmpCount diff
 
 %% TreeBagger
 
 RFs=struct;
 treesCount=20;
 %train and test sets
-imgPixelCountTrain=imgPixelCount(1:2);                      %<<<-----------------------HARD CODED
-imgPixelCountTest=imgPixelCount(3:3);                       %<<<-----------------------HARD CODED
+imgPixelCountTrain=imgPixelCount(1:size(trainImageList,2));
+imgPixelCountTest=imgPixelCount(1+size(trainImageList,2):end);
 
 trainInput=input(1:sum(imgPixelCountTrain),:,:);
 trainClass=class(1:sum(imgPixelCountTrain),:);%floor(totalPCount/2)
@@ -199,7 +205,7 @@ for i=1:m
     [labels,confidence] = predict(RFs(i).model,testInput(:,:,i));
     %[RFs(i).labels,RFs(i).scores] = predict(RFs(i).model,testInput(:,:,i),'Trees',10:20);
     finalScores(i,:)=confidence(:,2);
-    finalLabels(i,:)=labels;
+    %finalLabels(i,:)=labels;
 end
 [values, indices]=max(finalScores);
 
@@ -226,7 +232,7 @@ for testImgNum=1:size(imgPixelCountTest,2)
     [roc,pers]=GetROC(AllImages(imagesList(imgNum)),finalDisp,Results(testImgNum).Values);
     Results(testImgNum).ROC=roc;
     %The trapz function overestimates the value of the integral when f(x) is concave up.
-    Results(testImgNum).AUC=GetAUC(roc,pers);
+    Results(testImgNum).AUC=GetAUC(roc,pers); %perfect AUC is err-(1-err)*ln(1-err)
     
     %% other stuff
     %best possible error
@@ -245,7 +251,7 @@ for testImgNum=1:size(imgPixelCountTest,2)
     BPE(imgNum)=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp2,tau);
     
     
-    %post process ;-)
+    %simple post process ;-)
     % se = strel('rectangle',[2 2]);
     % closeBW = imclose(finalDisp,se);
     % imshow(closeBW,[]);
@@ -253,3 +259,6 @@ for testImgNum=1:size(imgPixelCountTest,2)
 
 
 end
+clear alldisps alldispsDif X Y roc pers imgGT imgNum i j x y labels confidence finalScores ind1 ind2 imgW imgH ind val 
+load chirp % chirp handel  gong
+sound(y,Fs);
