@@ -10,12 +10,13 @@ end
 imgGT=imread(ImageStruct.LDispOcc);
 imgGT=double(imgGT)/3;
 imgMask = imgGT ~= 0;
-badPixles=abs(disp-imgGT) > 1;%thid size
-badPixles(~imgMask) = 0;
+badPixels=abs(disp-imgGT) > 1;
+badPixels(GetOccludedArea(imgGT,[]))=0;
+badPixels(~imgMask) = 0;
 
 total=size(disp,1)*size(disp,2);
 tmp=zeros(total,2);
-tmp(:,1)=reshape(badPixles,[total ,1]);
+tmp(:,1)=reshape(badPixels,[total ,1]);
 tmp(:,2)=reshape(confidence,[total ,1]);
 [tmp(:,2), sortIndices]=sort(tmp(:,2),'descend');
 tmp(:,1)=tmp(sortIndices,1);
