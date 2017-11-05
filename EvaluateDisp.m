@@ -46,9 +46,9 @@ if ImageStruct.type
             dispError=sum(badPixels(:))/(size(imgGT,1)*size(imgGT,2));
         
         case 'Middlebury2005'
-            if ImageStruct.LImage(end)=='t'
+            if ImageStruct.ImageName(end)=='t'
                 scale=3;
-            elseif ImageStruct.LImage(end)=='h'
+            elseif ImageStruct.ImageName(end)=='h'
                 scale=2;
             else
                 scale=1;
