@@ -172,8 +172,8 @@ clear width height agreementMat DD LRC MED imgGT pCount tmpCount diff
 
 %% TreeBagger
 
-RFs=struct;
-treesCount=20;
+RFs=struct;%to store TreeBagger models
+treesCount=50;
 %train and test sets
 imgPixelCountTrain=imgPixelCount(1:size(trainImageList,2));
 imgPixelCountTest=imgPixelCount(1+size(trainImageList,2):end);
@@ -182,23 +182,19 @@ trainInput=input(1:sum(imgPixelCountTrain),:,:);
 trainClass=class(1:sum(imgPixelCountTrain),:);%floor(totalPCount/2)
 
 for i=1:m
-    
-    %training and making m RFs
-    %(each RF has 50 trees)
     X=trainInput(:,:,i);
     Y=trainClass(:,i);
     display(['training RF number ' num2str(i)]);
     %RFs(i).model=TreeBagger(treesCount,X,Y,'OOBPrediction','on');
-    RFs(i).model=TreeBagger(treesCount,X,Y);
+    RFs(i).model=compact (TreeBagger(treesCount,X,Y,'MinLeafSize',5000,'MergeLeaves','on' ));
+    %RFs(i).model=TreeBagger(treesCount,X,Y);
     %RFs(i).treeErrors = oobError(RFs(i).model);%out of bag error
-    %tr10 = rf(i).Trees{10};
+    %tr10 = RFs(i).model.Trees{10};
     %view(tr10,'Mode','graph');
 end
 
-
 %testing...
 display('testing...');
-
 testInput=input(1+sum(imgPixelCountTrain):end,:,:);
 testClass=class(1+sum(imgPixelCountTrain):end,:);%for AUC calculations
 for i=1:m
@@ -226,8 +222,6 @@ for testImgNum=1:size(imgPixelCountTest,2)
         end
     end
     Results(testImgNum).FinalDisp=finalDisp;
-    %imshow(finalDisp,[]);
-    %waitforbuttonpress;
     Results(testImgNum).Error=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp,tau);
     [roc,pers]=GetROC(AllImages(imagesList(imgNum)),finalDisp,Results(testImgNum).Values);
     Results(testImgNum).ROC=roc;
@@ -236,29 +230,29 @@ for testImgNum=1:size(imgPixelCountTest,2)
     
     %% other stuff
     %best possible error
-    finalDisp2=zeros(imgW,imgH);
-    imgGT = GetGT(AllImages(imagesList(imgNum)));
-    for x=1:imgW
-        for y=1:imgH
-            for i=1:m
-                alldisps(i)=dispData(i,imgNum).left(x,y);
-            end
-            alldispsDif=abs(alldisps-imgGT(x,y));
-            [val,ind]=min(alldispsDif);
-            finalDisp2(x,y)=alldisps(ind);
-        end
-    end
-    BPE(imgNum)=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp2,tau);
+%     finalDisp2=zeros(imgW,imgH);
+%     imgGT = GetGT(AllImages(imagesList(imgNum)));
+%     for x=1:imgW
+%         for y=1:imgH
+%             for i=1:m
+%                 alldisps(i)=dispData(i,imgNum).left(x,y);
+%             end
+%             alldispsDif=abs(alldisps-imgGT(x,y));
+%             [val,ind]=min(alldispsDif);
+%             finalDisp2(x,y)=alldisps(ind);
+%         end
+%     end
+%     BPE(imgNum)=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp2,tau);
     
     
     %simple post process ;-)
-    % se = strel('rectangle',[2 2]);
-    % closeBW = imclose(finalDisp,se);
-    % imshow(closeBW,[]);
-    % EvaluateDisp(AllImages(imgNum),closeBW,tau)
+%     se = strel('rectangle',[2 2]);
+%     closeBW = imclose(finalDisp,se);
+%     imshow(closeBW,[]);
+%     EvaluateDisp(AllImages(imgNum),closeBW,tau)
 
 
 end
 clear alldisps alldispsDif X Y roc pers imgGT imgNum i j x y labels confidence finalScores ind1 ind2 imgW imgH ind val 
 load chirp % chirp handel  gong
-sound(y,Fs);
+sound(y,Fs);    display('Job Done.');
