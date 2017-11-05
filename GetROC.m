@@ -3,7 +3,10 @@ function [ ROCCurve ,pers] = GetROC( ImageStruct, disp , confidence )
 %   
 
 
-%FIX: this is just for middlebury 2006
+%FIX: this is just for middlebury 2006 and 2005
+if ~(strcmp(ImageStruct.datasetName,'Middlebury2006') || strcmp(ImageStruct.datasetName,'Middlebury2005'))
+    error('GetROC is just for Middlebury2006 or Middlebury2005 now!');
+end
 imgGT=imread(ImageStruct.LDispOcc);
 imgGT=double(imgGT)/3;
 imgMask = imgGT ~= 0;
