@@ -7,12 +7,8 @@ function [ ROCCurve ,pers] = GetROC( ImageStruct, disp , confidence )
 if ~(strcmp(ImageStruct.datasetName,'Middlebury2006') || strcmp(ImageStruct.datasetName,'Middlebury2005'))
     error('GetROC is just for Middlebury2006 or Middlebury2005 now!');
 end
-imgGT=imread(ImageStruct.LDispOcc);
-imgGT=double(imgGT)/3;
-imgMask = imgGT ~= 0;
-badPixels=abs(disp-imgGT) > 1;
-badPixels(GetOccludedArea(imgGT,[]))=0;
-badPixels(~imgMask) = 0;
+
+[ ~ , ~ , badPixels] = EvaluateDisp(ImageStruct,disp,1);
 
 total=size(disp,1)*size(disp,2);
 tmp=zeros(total,2);
