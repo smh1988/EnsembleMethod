@@ -11,7 +11,7 @@ for x=1:size(imgL_d,1)
         lDispValue=imgL_d(x,y);
         if (x-lDispValue)>=1
             over=lDispValue-imgR_d(x-lDispValue,y);
-            if over<-1  %<0 gives more pixels as occluded
+            if over<0  %<-1 gives less pixels as occluded
                 occArea(x,y)=1;
             else
                 occArea(x,y)=0;
