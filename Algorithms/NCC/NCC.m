@@ -71,7 +71,7 @@ tmpCostVol(tmpCostVol>0)=0;%All positive cost values are truncated to 0.
 %% dont have time o optimize
 [imgL, imgR]=deal(imgR, imgL);
 [meansL, meansR]=deal(meansR, meansL);
-[stdsL ,stdsR ]=deal(stdsL, stdsL);
+[stdsL ,stdsR ]=deal(stdsR, stdsL);
 
 costs=zeros(maxdisp,1);
 for x=1+halfW+maxdisp:size(imgL,1)-halfW-maxdisp
