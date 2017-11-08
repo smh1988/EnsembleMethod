@@ -93,7 +93,7 @@ imgL_d=imgL_d';
 % %dont have time o optimize
 % [imgL, imgR]=deal(imgR, imgL);
 % [meansL, meansR]=deal(meansR, meansL);
-% [stdsL stdsR ]=deal(stdsL, stdsL);
+% [stdsL stdsR ]=deal(stdsR, stdsL);
 % 
 % 
 % imgR_d=zeros(size(imgL));
