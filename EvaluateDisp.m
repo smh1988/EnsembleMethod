@@ -1,6 +1,6 @@
 function [ dispError , imgMask , badPixels] = EvaluateDisp(ImageStruct,LEstDisp,tau) %TODO: an input option needed to select Occluded or NonOccluded!
 % this function calculates the error rate of Left Estimated image (pixles which their errors are
-% greater than tua) except Occluded areas
+% greater than tua) except Occluded and unknown areas
 
 
 LEstDisp=double(LEstDisp);
@@ -62,14 +62,15 @@ if ImageStruct.type
             badPixels(~imgMask) = 0;
             dispError=sum(badPixels(:))/(size(imgGT,1)*size(imgGT,2));
         
-        case 'KITTI2012'        %FIX: values are not compatible with our frameWork
+        case 'KITTI2012'        
+            %only few pixels are different in occluded images!
             I = imread(ImageStruct.LDispNoc);
             imgGT = double(I)/256;
-            imgGT(I==0) = -1;
+            imgMask = imgGT ~= 0;
             
-            E = abs(imgGT-LEstDisp);
-            E(imgGT<=0) = 0;
-            dispError = length(find(E>tau))/length(find(imgGT>0));
+            badPixels = abs(LEstDisp - imgGT) > tau;
+            badPixels(~imgMask) = 0;
+            dispError= sum(badPixels(:))/sum(imgMask(:));
             
         case 'Sintel'
             DISP = imread(ImageStruct.LDispOcc);
