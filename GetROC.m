@@ -1,13 +1,6 @@
 function [ ROCCurve ,pers] = GetROC( ImageStruct, disp , confidence )
 %GetROC calculating the commulative error of %5 %10 ...%100
 %   
-
-
-%FIX: this is just for middlebury 2006 and 2005
-if ~(strcmp(ImageStruct.datasetName,'Middlebury2006') || strcmp(ImageStruct.datasetName,'Middlebury2005'))
-    error('GetROC is just for Middlebury2006 or Middlebury2005 now!');
-end
-
 [ ~ , ~ , badPixels] = EvaluateDisp(ImageStruct,disp,1);
 
 total=size(disp,1)*size(disp,2);
@@ -21,7 +14,7 @@ for i=1:20
     percent=i*0.05;
     ind=int32(total*percent);
     tmpErr=sum(tmp(1: ind,1));
-    ROCCurve(i)=double(tmpErr)/double(ind);
+    ROCCurve(i)=double(tmpErr)/double(ind); %FIX: this should be number of mask
     pers(i)=percent;
 end
 
