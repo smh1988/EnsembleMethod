@@ -43,7 +43,12 @@ dispData=struct;
 tau=1; %error threshold
 
 %real image mumbers in AllImages
-trainImageList=[709];                                   %<<<-----------------------HARD CODED
+%[1 90] --> Middlebury2014
+%[91 478] --> KITTI2012
+%[479 692] --> Sintel
+%[693 713] -->Middlebury2006
+%[714 719] -->Middlebury2005
+trainImageList=[693:719];                                   %<<<-----------------------HARD CODED
 testImageList=[710];                                        %<<<-----------------------HARD CODED
 imagesList = [ trainImageList ,testImageList];
 
@@ -89,9 +94,9 @@ totalPCount=0;
 
 
 for imgNum=1:size(imagesList,2)
-width=size(dispData(1,imgNum).left,1);
-height=size(dispData(1,imgNum).left,2);
-imgPixelCount(imgNum)=width*height;
+    width=size(dispData(1,imgNum).left,1);
+    height=size(dispData(1,imgNum).left,2);
+    imgPixelCount(imgNum)=width*height;
 end
 samplesNum=sum(imgPixelCount);
 %input=zeros(samplesNum,m-1+m+m+1+m,m);%ai , DD , LRC , TS, MED
@@ -132,7 +137,7 @@ for imgNum=1:size(imagesList,2)
         pCount=totalPCount;%number of pixels (samples)
         truePixles = abs(dispData(i,imgNum).left - imgGT) <= 1;
         %badPixles(~imgMask) = 0;
-
+        
         %making data
         display(['making data for algorithm number ', num2str(i)]);
         for x=1:size(dispData(i,imgNum).left,1)
@@ -148,11 +153,11 @@ for imgNum=1:size(imagesList,2)
                     end
                 end
                 %using other features of other matchers
-%                 input(pCount,5:9,i)=squeeze(DD(x,y,:));%DD
-%                 input(pCount,10:14,i)=squeeze(LRC(x,y,:));%LRC
-%                 input(pCount,15,i)=sum (  input(pCount,1:tmpCount,i)==1);%TS
-%                 input(pCount,16:20,i)=squeeze(MED(x,y,:));
-
+                %                 input(pCount,5:9,i)=squeeze(DD(x,y,:));%DD
+                %                 input(pCount,10:14,i)=squeeze(LRC(x,y,:));%LRC
+                %                 input(pCount,15,i)=sum (  input(pCount,1:tmpCount,i)==1);%TS
+                %                 input(pCount,16:20,i)=squeeze(MED(x,y,:));
+                
                 %only using its own features                %<<<-----------------------HARD CODED
                 input(pCount,5,i)=squeeze(DD(x,y,i));%DD
                 input(pCount,6,i)=squeeze(LRC(x,y,i));%LRC
@@ -170,16 +175,21 @@ for imgNum=1:size(imagesList,2)
 end
 clear width height agreementMat DD LRC MED imgGT pCount tmpCount diff
 
+
 %% TreeBagger
+imgPixelCountTrain=imgPixelCount(1:size(trainImageList,2));
+imgPixelCountTest=imgPixelCount(1+size(trainImageList,2):end);
+permutedIndices=randperm( sum(imgPixelCountTrain));
+portion=1;
+sampleCount=uint32( portion*sum(imgPixelCountTrain));
+trainIndices=permutedIndices (1:sampleCount);
 
 RFs=struct;%to store TreeBagger models
 treesCount=50;
 %train and test sets
-imgPixelCountTrain=imgPixelCount(1:size(trainImageList,2));
-imgPixelCountTest=imgPixelCount(1+size(trainImageList,2):end);
 
-trainInput=input(1:sum(imgPixelCountTrain),:,:);
-trainClass=class(1:sum(imgPixelCountTrain),:);%floor(totalPCount/2)
+trainInput=input(trainIndices,:,:);
+trainClass=class(trainIndices,:);%floor(totalPCount/2)
 
 for i=1:m
     X=trainInput(:,:,i);
@@ -227,32 +237,30 @@ for testImgNum=1:size(imgPixelCountTest,2)
     Results(testImgNum).ROC=roc;
     %The trapz function overestimates the value of the integral when f(x) is concave up.
     Results(testImgNum).AUC=GetAUC(roc,pers); %perfect AUC is err-(1-err)*ln(1-err)
-    
-    %% other stuff
-    %best possible error
-%     finalDisp2=zeros(imgW,imgH);
-%     imgGT = GetGT(AllImages(imagesList(imgNum)));
-%     for x=1:imgW
-%         for y=1:imgH
-%             for i=1:m
-%                 alldisps(i)=dispData(i,imgNum).left(x,y);
-%             end
-%             alldispsDif=abs(alldisps-imgGT(x,y));
-%             [val,ind]=min(alldispsDif);
-%             finalDisp2(x,y)=alldisps(ind);
-%         end
-%     end
+    %% other stuff                                                               
+    %best possible error                                                     
+%     finalDisp2=zeros(imgW,imgH);                                           
+%     imgGT = GetGT(AllImages(imagesList(imgNum)));                          
+%     for x=1:imgW                                                           
+%         for y=1:imgH                                                       
+%             for i=1:m                                                      
+%                 alldisps(i)=dispData(i,imgNum).left(x,y);                  
+%             end                                                            
+%             alldispsDif=abs(alldisps-imgGT(x,y));                          
+%             [val,ind]=min(alldispsDif);                                    
+%             finalDisp2(x,y)=alldisps(ind);                                 
+%         end                                                                
+%     end                                                                    
 %     BPE(imgNum)=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp2,tau);
-    
-    
-    %simple post process ;-)
-%     se = strel('rectangle',[2 2]);
-%     closeBW = imclose(finalDisp,se);
-%     imshow(closeBW,[]);
-%     EvaluateDisp(AllImages(imgNum),closeBW,tau)
-
-
+                                                                             
+                                                                             
+    %simple post process ;-)                                                 
+%     se = strel('rectangle',[2 2]);                                         
+%     closeBW = imclose(finalDisp,se);                                       
+%     imshow(closeBW,[]);                                                    
+%     EvaluateDisp(AllImages(imgNum),closeBW,tau) 
 end
-clear alldisps alldispsDif X Y roc pers imgGT imgNum i j x y labels confidence finalScores ind1 ind2 imgW imgH ind val 
+
+clear alldisps alldispsDif X Y roc pers imgGT imgNum i j x y labels confidence finalScores ind1 ind2 imgW imgH ind val
 load chirp % chirp handel  gong
 sound(y,Fs);    display('Job Done.');
