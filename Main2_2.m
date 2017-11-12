@@ -48,8 +48,8 @@ tau=1; %error threshold
 %[479 692] --> Sintel
 %[693 713] -->Middlebury2006
 %[714 719] -->Middlebury2005
-trainImageList=[693:719];                                   %<<<-----------------------HARD CODED
-testImageList=[710];                                        %<<<-----------------------HARD CODED
+trainImageList=[705,706];                                   %<<<-----------------------HARD CODED
+testImageList=[707];                                        %<<<-----------------------HARD CODED
 imagesList = [ trainImageList ,testImageList];
 
 for imgNum=1:size(imagesList,2) %local image numbers
@@ -59,8 +59,6 @@ for imgNum=1:size(imagesList,2) %local image numbers
     for aNum=algosNum
         algoCount=algoCount+1;
         fileName=strcat('./Results/',num2str(imagesList(imgNum)) ,'_',AllImages(imagesList(imgNum)).ImageName , '_'  ,func2str( algoFunc{aNum}),  '.mat');
-        %display(fileName);
-        
         if exist(fileName,'file')
             load(fileName);
         else
@@ -143,7 +141,6 @@ for imgNum=1:size(imagesList,2)
         for x=1:size(dispData(i,imgNum).left,1)
             for y=1:size(dispData(i,imgNum).left,2)
                 %FIX: considering non-occluded pixels (SHOULD WE????)
-                %if imgMask(x,y)==1
                 pCount=pCount+1;
                 tmpCount=0;% always reachs to m-1
                 for j=1:m %index of secondary matcher
@@ -152,21 +149,26 @@ for imgNum=1:size(imagesList,2)
                         input(pCount,tmpCount,i)=agreementMat(j,i).diff(x,y);%ai
                     end
                 end
-                %using other features of other matchers
-                %                 input(pCount,5:9,i)=squeeze(DD(x,y,:));%DD
-                %                 input(pCount,10:14,i)=squeeze(LRC(x,y,:));%LRC
-                %                 input(pCount,15,i)=sum (  input(pCount,1:tmpCount,i)==1);%TS
-                %                 input(pCount,16:20,i)=squeeze(MED(x,y,:));
-                
                 %only using its own features                %<<<-----------------------HARD CODED
                 input(pCount,5,i)=squeeze(DD(x,y,i));%DD
                 input(pCount,6,i)=squeeze(LRC(x,y,i));%LRC
                 input(pCount,7,i)=sum (input(pCount,1:tmpCount,i)==1);%TS
                 input(pCount,8,i)=squeeze(MED(x,y,i));
-                %TODO:aiDD ?dimension missmatch
-                %TODO:aiLRC
+                
+                %using other features of other matchers
+%                 fInd=8;
+%                 for j=1:m %index of secondary matcher
+%                     if j~=i
+%                         ai=agreementMat(j,i).diff(x,y);
+%                         fInd=fInd+1;
+%                         input(pCount,fInd,i)=squeeze(DD(x,y,j))*ai;%aiDD
+%                         fInd=fInd+1;
+%                         input(pCount,fInd,i)=squeeze(LRC(x,y,j))*ai;%aiLRC
+%                         fInd=fInd+1;
+%                         input(pCount,fInd,i)=squeeze(MED(x,y,j))*ai;%aiMED
+%                     end
+%                 end
                 class(pCount,i)= truePixles(x,y);%whether the disparity assigned to that pixel was correct (1) or not (0)
-                %end
             end
         end
     end
