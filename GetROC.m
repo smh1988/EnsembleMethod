@@ -1,7 +1,7 @@
-function [ ROCCurve ,pers] = GetROC( ImageStruct, disp , confidence )
+function [ ROCCurve ,pers] = GetROC( ImageStruct, disp , confidence ,errThreshold)
 %GetROC calculating the commulative error of %5 %10 ...%100
 %   
-[ ~ , imgMask , badPixels] = EvaluateDisp(ImageStruct,disp,1);
+[ ~ , imgMask , badPixels] = EvaluateDisp(ImageStruct,disp,errThreshold);
 
 total=size(disp,1)*size(disp,2);
 tmp=zeros(total,3);
