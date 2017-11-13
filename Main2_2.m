@@ -40,7 +40,7 @@ featureFunc{3}=str2func('MED');
 display ('calculating disparities...');
 data=struct;
 dispData=struct;
-tau=1; %error threshold
+errThreshold=1; %error threshold
 
 %real image mumbers in AllImages
 %[1 90] --> Middlebury2014
@@ -67,10 +67,10 @@ for imgNum=1:size(imagesList,2) %local image numbers
             data.TimeCosts=toc;
             data.DisparityLeft=dispL;
             data.DisparityRight=dispR;
-            data.ErrorRates=EvaluateDisp(AllImages(imagesList(imgNum)),double(dispL),tau);
+            data.ErrorRates=EvaluateDisp(AllImages(imagesList(imgNum)),double(dispL),errThreshold);
             save(fileName,'data');
         end
-        err(algoCount,imgNum)=EvaluateDisp(AllImages(imagesList(imgNum)),data.DisparityLeft,tau);%data.ErrorRates;
+        err(algoCount,imgNum)=EvaluateDisp(AllImages(imagesList(imgNum)),data.DisparityLeft,errThreshold);%data.ErrorRates;
         dispData(algoCount,imgNum).left=data.DisparityLeft;
         dispData(algoCount,imgNum).right=data.DisparityRight;
     end
@@ -85,7 +85,7 @@ clear algoCount aNum data fileName
 % end
 
 %% making the dataset and features
-m=size(algosNum,2); %number of active matchers
+k=size(algosNum,2); %number of active matchers
 display('making dataset...');
 totalPCount=0;
 %samples=struct;
@@ -98,14 +98,14 @@ for imgNum=1:size(imagesList,2)
 end
 samplesNum=sum(imgPixelCount);
 %input=zeros(samplesNum,m-1+m+m+1+m,m);%ai , DD , LRC , TS, MED
-input=zeros(samplesNum,8,m);                                %<<<-----------------------HARD CODED
-class=zeros(samplesNum,m);
+input=zeros(samplesNum,8,k);                                %<<<-----------------------HARD CODED
+class=zeros(samplesNum,k);
 for imgNum=1:size(imagesList,2)
     display(['working on img ' num2str(imagesList(imgNum)) ]);
     %pre-calculting all agreement features =ai
     agreementMat=struct;
-    for i=1:m
-        for j=i:m
+    for i=1:k
+        for j=i:k
             if i~=j
                 diff=abs(dispData(i,imgNum).left-dispData(j,imgNum).left);
                 diff(diff<=3)=1;%ai threshold
@@ -120,10 +120,10 @@ for imgNum=1:size(imagesList,2)
     
     %pre-calculting all DDs LRCs and MEDs
     display('Getting DD LRC MED' );
-    DD=zeros(size(dispData(i,imgNum).left,1),size(dispData(i,imgNum).left,2),m);
+    DD=zeros(size(dispData(i,imgNum).left,1),size(dispData(i,imgNum).left,2),k);
     LRC=DD;
     MED=DD;
-    for i=1:m
+    for i=1:k
         DD(:,:,i)=featureFunc{1}(dispData(i,imgNum).left);
         LRC(:,:,i)=featureFunc{2}(dispData(i,imgNum).left,dispData(i,imgNum).right );
         MED(:,:,i)=featureFunc{3}(dispData(i,imgNum).left);
@@ -131,19 +131,20 @@ for imgNum=1:size(imagesList,2)
     
     imgGT = GetGT(AllImages(imagesList(imgNum)));
     
-    for i=1:m % so, primary matcher is i
+    for i=1:k % so, primary matcher is i
         pCount=totalPCount;%number of pixels (samples)
-        truePixles = abs(dispData(i,imgNum).left - imgGT) <= 1;
+        truePixles = abs(dispData(i,imgNum).left - imgGT) <= errThreshold;
         %badPixles(~imgMask) = 0;
         
         %making data
         display(['making data for algorithm number ', num2str(i)]);
         for x=1:size(dispData(i,imgNum).left,1)
             for y=1:size(dispData(i,imgNum).left,2)
-                %FIX: considering non-occluded pixels (SHOULD WE????)
+                %FIX: considering non-occluded pixels
+                %in 2016-correctness.. Occluded pixels are ignored during training.
                 pCount=pCount+1;
                 tmpCount=0;% always reachs to m-1
-                for j=1:m %index of secondary matcher
+                for j=1:k %index of secondary matcher
                     if j~=i
                         tmpCount=tmpCount+1;
                         input(pCount,tmpCount,i)=agreementMat(j,i).diff(x,y);%ai
@@ -182,7 +183,7 @@ clear width height agreementMat DD LRC MED imgGT pCount tmpCount diff
 imgPixelCountTrain=imgPixelCount(1:size(trainImageList,2));
 imgPixelCountTest=imgPixelCount(1+size(trainImageList,2):end);
 permutedIndices=randperm( sum(imgPixelCountTrain));
-portion=1;
+portion=1;%in 0.25 the avg error increses 0.0002 and avg AUC increses 0.0006 (for 702:711)
 sampleCount=uint32( portion*sum(imgPixelCountTrain));
 trainIndices=permutedIndices (1:sampleCount);
 
@@ -193,7 +194,7 @@ treesCount=50;
 trainInput=input(trainIndices,:,:);
 trainClass=class(trainIndices,:);%floor(totalPCount/2)
 
-for i=1:m
+for i=1:k
     X=trainInput(:,:,i);
     Y=trainClass(:,i);
     display(['training RF number ' num2str(i)]);
@@ -209,7 +210,7 @@ end
 display('testing...');
 testInput=input(1+sum(imgPixelCountTrain):end,:,:);
 testClass=class(1+sum(imgPixelCountTrain):end,:);%for AUC calculations
-for i=1:m
+for i=1:k
     [labels,confidence] = predict(RFs(i).model,testInput(:,:,i));
     %[RFs(i).labels,RFs(i).scores] = predict(RFs(i).model,testInput(:,:,i),'Trees',10:20);
     finalScores(i,:)=confidence(:,2);
@@ -234,11 +235,12 @@ for testImgNum=1:size(imgPixelCountTest,2)
         end
     end
     Results(testImgNum).FinalDisp=finalDisp;
-    Results(testImgNum).Error=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp,tau);
-    [roc,pers]=GetROC(AllImages(imagesList(imgNum)),finalDisp,Results(testImgNum).Values);
-    Results(testImgNum).ROC=roc;
+    %Results(testImgNum).Error=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp,errThreshold);
+    %[roc,pers]=GetROC(AllImages(imagesList(imgNum)),finalDisp,Results(testImgNum).Values);
+    %Results(testImgNum).ROC=roc;
     %The trapz function overestimates the value of the integral when f(x) is concave up.
-    Results(testImgNum).AUC=GetAUC(roc,pers); %perfect AUC is err-(1-err)*ln(1-err)
+    %Results(testImgNum).AUC=GetAUC(roc,pers); %perfect AUC is err-(1-err)*ln(1-err)
+    
     %% other stuff                                                               
     %best possible error                                                     
 %     finalDisp2=zeros(imgW,imgH);                                           
@@ -253,14 +255,14 @@ for testImgNum=1:size(imgPixelCountTest,2)
 %             finalDisp2(x,y)=alldisps(ind);                                 
 %         end                                                                
 %     end                                                                    
-%     BPE(imgNum)=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp2,tau);
+%     BPE(imgNum)=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp2,errThreshold);
                                                                              
                                                                              
     %simple post process ;-)                                                 
 %     se = strel('rectangle',[2 2]);                                         
 %     closeBW = imclose(finalDisp,se);                                       
 %     imshow(closeBW,[]);                                                    
-%     EvaluateDisp(AllImages(imgNum),closeBW,tau) 
+%     EvaluateDisp(AllImages(imgNum),closeBW,errThreshold) 
 end
 
 clear alldisps alldispsDif X Y roc pers imgGT imgNum i j x y labels confidence finalScores ind1 ind2 imgW imgH ind val
