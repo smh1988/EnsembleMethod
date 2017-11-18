@@ -9,9 +9,9 @@ clc;
 DatasetDir;
 
 %% comparing the reults of ROC and AUC
-load('Middlebury Results.mat');
+load('MiddleRes_NCC.mat');
+load('MiddleRes.mat');
 addpath ('2016-Correctness');
-%[~,ncc]=NCCAll(imread(AllImages(1).LImage),imread(AllImages(1).RImage),[1 85]);
 
 imagesList = [693:719];
 totalCorr=0;
@@ -41,20 +41,21 @@ for imgNum=1:27
     %NCC Cost
 %     imgL=imread(AllImages(imagesList(imgNum)).LImage);
 %     imgR=imread(AllImages(imagesList(imgNum)).RImage);
-%     [ ~, Cost, ~,~ ] = NCCAll( imgL,imgR,[1 85]);
+%     ?[ ~, Cost, ~,~ ] = NCCAll( imgL,imgR,[1 85]);
 %     [roc,pers]=GetROC(AllImages(imagesList(imgNum)),MiddleRes(imgNum).FinalDisp,Cost,1);
     
     %RF-kMs
-    [roc,pers]=GetROC(AllImages(imgNum+692),MiddleRes(imgNum).FinalDisp,MiddleRes(imgNum).Values,1);
+    %[roc,pers]=GetROC(AllImages(imgNum+692),MiddleRes(imgNum).FinalDisp,MiddleRes(imgNum).Values,1);
     
     
     %RF-NCC
+    %[roc,pers]=GetROC(AllImages(imgNum+692),MiddleRes(imgNum).FinalDisp,MiddleRes_NCC(imgNum).Values,1);
     
-    
-    ROCs(1:20,imgNum)=roc;
-    AUCs(imgNum)=GetAUC(roc,pers);
-    aucOpt(imgNum)=dispError+(1-dispError)*log(1-dispError);
+    %ROCs(1:20,imgNum)=roc;
+    %AUCs(imgNum)=GetAUC(roc,pers);
+    %aucOpt(imgNum)=dispError+(1-dispError)*log(1-dispError);
 end
 
 corrAcu=(totalCorr- corrErr)/totalCorr;
 incorrAcu=(totalIncorr- incorrErr)/totalIncorr;
+total=totalCorr+totalIncorr;

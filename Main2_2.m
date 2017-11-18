@@ -23,10 +23,9 @@ algosNum = [ 4 5 9 10 11] ;                                 %<<<----------------
 %1-ADSM  2-ARWSM 3-BMSM  4-BSM   5-ELAS  6-FCVFSM   7-SGSM  8-SSCA  9-WCSM
 %10-MeshSM 11-NCC
 
-addpath('2016-Correctness'); %features should be floats in range [0 1]
-featureFunc{1}=str2func('DD');%overriding features
-featureFunc{2}=str2func('LRC');
-featureFunc{3}=str2func('MED');
+cmNum = [ 3 5 7] ;
+%select desired Confidence Measures from the list below and put its number in the list
+%   1-AML  2-DB 3-DD 4-HGM 5-LRC 6-LRD 7-MED 8-MM
 
 
 %% reading or calculating errors for images (left and right)
@@ -109,9 +108,9 @@ for imgNum=1:size(imagesList,2)
     LRC=DD;
     MED=DD;
     for i=1:k
-        DD(:,:,i)=featureFunc{1}(dispData(i,imgNum).left);
-        LRC(:,:,i)=featureFunc{2}(dispData(i,imgNum).left,dispData(i,imgNum).right );
-        MED(:,:,i)=featureFunc{3}(dispData(i,imgNum).left);
+        DD(:,:,i)=cmFunc{3}(dispData(i,imgNum).left);
+        LRC(:,:,i)=cmFunc{5}(dispData(i,imgNum).left,dispData(i,imgNum).right );
+        MED(:,:,i)=cmFunc{7}(dispData(i,imgNum).left);
     end
     
     imgGT = GetGT(AllImages(imagesList(imgNum)));
@@ -241,12 +240,6 @@ for testImgNum=1:size(imgPixelCountTest,2)
 %     end                                                                    
 %     BPE(imgNum)=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp2,errThreshold);
                                                                              
-                                                                             
-    %simple post process ;-)                                                 
-%     se = strel('rectangle',[2 2]);                                         
-%     closeBW = imclose(finalDisp,se);                                       
-%     imshow(closeBW,[]);                                                    
-%     EvaluateDisp(AllImages(imgNum),closeBW,errThreshold) 
 end
 clear alldisps alldispsDif X Y roc pers imgGT imgNum i j x y labels confidence finalScores ind1 ind2 imgW imgH ind val
 

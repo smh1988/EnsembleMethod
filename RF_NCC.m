@@ -1,8 +1,8 @@
 %% DESCRIPTION
 % Dataset: any
 % images: from dataset
-% features: DD LRC MED ai TS
-% algorithms: implemented
+% features: DD LRC MED MM
+% algorithms: NCC
 % classifier: TreeBagger
 
 
@@ -23,16 +23,9 @@ algosNum = [ 4 5 9 10 11] ;                                 %<<<----------------
 %1-ADSM  2-ARWSM 3-BMSM  4-BSM   5-ELAS  6-FCVFSM   7-SGSM  8-SSCA  9-WCSM
 %10-MeshSM 11-NCC
 
-%featuresNum= [1 2 3];
-%select desired features from the list below and put its number in the list
-%   1-CE    2-CANNY 3-FNVE  4-GRAYCONNECTED 5-HA    6-HARRISCORNERPOINTS    7-HOG   8-LABELEDREGIONS    9-RD    10-SOBEL    11-SP   12-SURFF
-
-addpath('2016-Correctness2'); %features should be floats in range [0 1]
-featureFunc{1}=str2func('DD');%overriding features
-featureFunc{2}=str2func('LRC');
-featureFunc{3}=str2func('MED');
-featureFunc{4}=str2func('MM');
-%TODO: AML and LRD
+cfNum = [ 3 5 7 8] ;
+%select desired Confidence Measures from the list below and put its number in the list
+%   1-AML  2-DB 3-DD 4-HGM 5-LRC 6-LRD 7-MED 8-MM
 
 %% reading or calculating errors for images (left and right)
 
@@ -40,7 +33,7 @@ display ('calculating disparities...');
 data=struct;
 dispData=struct;
 errThreshold=1; %error threshold
-
+addpath ('2016-Correctness');
 %real image mumbers in AllImages
 %[1 90] --> Middlebury2014
 %[91 478] --> KITTI2012
@@ -78,12 +71,6 @@ for imgNum=1:size(imagesList,2) %local image numbers
     display([num2str(imagesList(imgNum)) 'done']);
 end
 clear algoCount aNum data fileName
-%checking every result
-% for i=1:m
-% imshow(dispData(i,2).left,[]);
-% waitforbuttonpress();
-% cla;
-% end
 
 %% making the dataset and features
 k=1;%size(algosNum,2); %number of active matchers
@@ -107,11 +94,11 @@ for imgNum=1:size(imagesList,2)
     %pre-calculting all DDs LRCs and MEDs
     display('Getting DD LRC MED' );
     i=1;
-        DD=featureFunc{1}(dispData(i,imgNum).left);
-        LRC=featureFunc{2}(dispData(i,imgNum).left,dispData(i,imgNum).right );
-        MED=featureFunc{3}(dispData(i,imgNum).left);
+        DD=cmFunc{3}(dispData(i,imgNum).left);
+        LRC=cmFunc{5}(dispData(i,imgNum).left,dispData(i,imgNum).right );
+        MED=cmFunc{7}(dispData(i,imgNum).left);
         sortedCostVol =sort(dispData(i,imgNum).CostVolume,3);
-        MM=featureFunc{4}(sortedCostVol);
+        MM=cmFunc{8}(sortedCostVol);
 
     
     imgGT = GetGT(AllImages(imagesList(imgNum)));
@@ -128,11 +115,10 @@ for imgNum=1:size(imagesList,2)
                 %in 2016-correctness.. Occluded pixels are ignored during training.
                 if ~(imgMask(x,y)==0 && imgNum<=size(trainImageList,2))
                     pCount=pCount+1;
-                    tmpCount=0;% always reachs to m-1
 
                     %only using its own features                %<<<-----------------------HARD CODED
-                    input(pCount,1,i)=squeeze(DD(x,y));%DD
-                    input(pCount,2,i)=squeeze(LRC(x,y));%LRC
+                    input(pCount,1,i)=squeeze(DD(x,y));
+                    input(pCount,2,i)=squeeze(LRC(x,y));
                     input(pCount,3,i)=squeeze(MED(x,y));
                     input(pCount,4,i)=squeeze(MM(x,y));
                     input(pCount,5,i)=squeeze(dispData(1,imgNum).Cost(x,y));

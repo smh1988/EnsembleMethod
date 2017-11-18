@@ -79,3 +79,23 @@ synthFunc{2}=str2func('gaussian');
 synthFunc{3}=str2func('JPG');
 synthFunc{4}=str2func('MotionBlur');
 synthFunc{5}=str2func('saltnPepper');
+
+
+%% loading Confidence Measures
+
+%usage:
+%cmNum = [ 3 5 6 7] ;
+%select desired Confidence Measures from the list below and put its number in the list
+%   1-AML  2-DB 3-DD 4-HGM 5-LRC 6-LRD 7-MED 8-MM
+%[ValueMapL]=cfFunc{sNum}(imgL,imgR,ratio);
+%TODO: getting measures from right images
+
+addpath('Confidence Measures');
+cmFunc{1}=str2func('AML');   %Attainable Maximum
+cmFunc{2}=str2func('DB');    %Distance from Border
+cmFunc{3}=str2func('DD');    %Distance from discontinuity
+cmFunc{4}=str2func('HGM');   %Image gradient function
+cmFunc{5}=str2func('LRC');   %Left Right Consistency map 
+cmFunc{6}=str2func('LRD');   %Left–Right Difference
+cmFunc{7}=str2func('MED');   %Difference with Median Disparity
+cmFunc{8}=str2func('MM');    %Maximum Margin
