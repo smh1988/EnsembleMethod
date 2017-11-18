@@ -191,7 +191,7 @@ for i=1:k
     Y=trainClass(:,i);
     display(['training RF number ' num2str(i)]);
     %RFs(i).model=TreeBagger(treesCount,X,Y,'OOBPrediction','on');
-    RFs(i).model=compact (TreeBagger(treesCount,X,Y,'MinLeafSize',5000,'MergeLeaves','on' ));
+    RFs(i).model=compact (TreeBagger(treesCount,X,Y,'MinLeafSize',5000 ));%,'MergeLeaves','on'
     %RFs(i).model=TreeBagger(treesCount,X,Y);
     %RFs(i).treeErrors = oobError(RFs(i).model);%out of bag error
     %tr10 = RFs(i).model.Trees{10};

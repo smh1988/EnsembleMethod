@@ -23,16 +23,10 @@ algosNum = [ 4 5 9 10 11] ;                                 %<<<----------------
 %1-ADSM  2-ARWSM 3-BMSM  4-BSM   5-ELAS  6-FCVFSM   7-SGSM  8-SSCA  9-WCSM
 %10-MeshSM 11-NCC
 
-%featuresNum= [1 2 3];
-%select desired features from the list below and put its number in the list
-%   1-CE    2-CANNY 3-FNVE  4-GRAYCONNECTED 5-HA    6-HARRISCORNERPOINTS    7-HOG   8-LABELEDREGIONS    9-RD    10-SOBEL    11-SP   12-SURFF
-
 addpath('2016-Correctness'); %features should be floats in range [0 1]
 featureFunc{1}=str2func('DD');%overriding features
 featureFunc{2}=str2func('LRC');
 featureFunc{3}=str2func('MED');
-%featureFunc{4}=str2func('DB');
-%MMN, AML, LRD are not usefull here since we do not have cost volumes of other algorithms
 
 
 %% reading or calculating errors for images (left and right)
@@ -77,19 +71,11 @@ for imgNum=1:size(imagesList,2) %local image numbers
     display([num2str(imagesList(imgNum)) 'done']);
 end
 clear algoCount aNum data fileName
-%checking every result
-% for i=1:m
-% imshow(dispData(i,2).left,[]);
-% waitforbuttonpress();
-% cla;
-% end
 
 %% making the dataset and features
 k=size(algosNum,2); %number of active matchers
 display('making dataset...');
 totalPCount=0;
-%samples=struct;
-
 
 for imgNum=1:size(imagesList,2)
     width=size(dispData(1,imgNum).left,1);
@@ -97,8 +83,7 @@ for imgNum=1:size(imagesList,2)
     imgPixelCount(imgNum)=width*height;
 end
 samplesNum=sum(imgPixelCount);
-%input=zeros(samplesNum,m-1+m+m+1+m,m);%ai , DD , LRC , TS, MED
-input=zeros(samplesNum,8,k);                                %<<<-----------------------HARD CODED
+input=zeros(samplesNum,8,k);%ai , DD , LRC , TS, MED               %<<<-----------------------HARD CODED
 class=zeros(samplesNum,k);
 for imgNum=1:size(imagesList,2)
     display(['working on img ' num2str(imagesList(imgNum)) ]);
@@ -189,18 +174,17 @@ trainIndices=permutedIndices (1:sampleCount);
 
 RFs=struct;%to store TreeBagger models
 treesCount=50;
-%train and test sets
 
+%train and test sets
 trainInput=input(trainIndices,:,:);
-trainClass=class(trainIndices,:);%floor(totalPCount/2)
+trainClass=class(trainIndices,:);
 
 for i=1:k
     X=trainInput(:,:,i);
     Y=trainClass(:,i);
     display(['training RF number ' num2str(i)]);
     %RFs(i).model=TreeBagger(treesCount,X,Y,'OOBPrediction','on');
-    RFs(i).model=compact (TreeBagger(treesCount,X,Y,'MinLeafSize',5000,'MergeLeaves','on' ));
-    %RFs(i).model=TreeBagger(treesCount,X,Y);
+    RFs(i).model=compact (TreeBagger(treesCount,X,Y,'MinLeafSize',5000 ));%,'MergeLeaves','on'
     %RFs(i).treeErrors = oobError(RFs(i).model);%out of bag error
     %tr10 = RFs(i).model.Trees{10};
     %view(tr10,'Mode','graph');
@@ -264,7 +248,6 @@ for testImgNum=1:size(imgPixelCountTest,2)
 %     imshow(closeBW,[]);                                                    
 %     EvaluateDisp(AllImages(imgNum),closeBW,errThreshold) 
 end
-
 clear alldisps alldispsDif X Y roc pers imgGT imgNum i j x y labels confidence finalScores ind1 ind2 imgW imgH ind val
-load chirp % chirp handel  gong
-sound(y,Fs);    display('Job Done.');
+
+load chirp; sound(y,Fs);	display('Job Done.');
