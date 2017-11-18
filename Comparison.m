@@ -14,10 +14,10 @@ load('MiddleRes.mat');
 addpath ('2016-Correctness');
 
 imagesList = [693:719];
-totalCorr=0;
-totalIncorr=0;
-corrErr=0;
-incorrErr=0;
+PCP=0;  PCN=0;
+FP=0;   FN=0;
+CN=0;   CP=0;
+TP=0;   TN=0;
 allIndices=zeros([1 5]);
 for imgNum=1:27
     [ dispError , imgMask , badPixels] = EvaluateDisp(AllImages(imagesList(imgNum)),MiddleRes(imgNum).FinalDisp,1);
@@ -27,13 +27,20 @@ for imgNum=1:27
     incorrImg=MiddleRes(imgNum).Values <= 0.5;
     incorrImg(~imgMask)=0;
     
-    totalCorr=totalCorr+sum(corrImg(:));
-    totalIncorr=totalIncorr+sum(incorrImg(:));
+    truePixels=~badPixels;
+    truePixels(~imgMask)=0;
     
-    corrErr=corrErr+sum(corrImg(badPixels));
-    incorrErr=incorrErr+sum(incorrImg(~badPixels(~imgMask)));
+    PCP=PCP+sum(corrImg(:));
+    PCN=PCN+sum(incorrImg(:));
     
-    badSum=sum(badPixels(:));
+    CP=CP+sum(truePixels(:));
+    CN=CN+sum(badPixels(:));
+    
+    FP=FP+sum(corrImg(badPixels));
+    FN=FN+sum(incorrImg(truePixels));
+
+    TP=TP+sum(corrImg(truePixels));
+    TN=TN+sum(incorrImg(badPixels));
     
     err(imgNum)=dispError;
     %allIndices(1:5)=allIndices(1:5)+ histcounts(MiddleRes(imgNum).Indices);
@@ -55,7 +62,12 @@ for imgNum=1:27
     %AUCs(imgNum)=GetAUC(roc,pers);
     %aucOpt(imgNum)=dispError+(1-dispError)*log(1-dispError);
 end
+%TP=PCP-FP;
+%TN=PCN-FN;
 
-corrAcu=(totalCorr- corrErr)/totalCorr;
-incorrAcu=(totalIncorr- incorrErr)/totalIncorr;
-total=totalCorr+totalIncorr;
+%CP=TP+FP;
+%CN=FP+TN;
+
+TPR=TP/CP;
+TNR=TN/CN;
+total=PCP+PCN;
