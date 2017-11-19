@@ -36,11 +36,6 @@ dispData=struct;
 errThreshold=1; %error threshold
 
 %real image mumbers in AllImages
-%[1 90] --> Middlebury2014
-%[91 478] --> KITTI2012
-%[479 692] --> Sintel
-%[693 713] -->Middlebury2006
-%[714 719] -->Middlebury2005
 trainImageList=[705,706];                                   %<<<-----------------------HARD CODED
 testImageList=[707];                                        %<<<-----------------------HARD CODED
 imagesList = [ trainImageList ,testImageList];
