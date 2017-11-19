@@ -189,8 +189,8 @@ display('testing...');
 % testInput=input(1+sum(imgPixelCountTrain):end,:,:);
 % testClass=class(1+sum(imgPixelCountTrain):end,:);%for AUC calculations
 
-testInput=input(1+trainCount:end,:,:);
-testClass=class(1+trainCount:end,:);%for AUC calculations
+testInput=input(1+trainCount:totalPCount,:,:);
+testClass=class(1+trainCount:totalPCount,:);%for AUC calculations
 for i=1:k
     [labels,confidence] = predict(RFs(i).model,testInput(:,:,i));
     %[RFs(i).labels,RFs(i).scores] = predict(RFs(i).model,testInput(:,:,i),'Trees',10:20);
