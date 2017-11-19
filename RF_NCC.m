@@ -35,11 +35,6 @@ dispData=struct;
 errThreshold=1; %error threshold
 addpath ('2016-Correctness');
 %real image mumbers in AllImages
-%[1 90] --> Middlebury2014
-%[91 478] --> KITTI2012
-%[479 692] --> Sintel
-%[693 713] -->Middlebury2006
-%[714 719] -->Middlebury2005
 trainImageList=[709];                                   %<<<-----------------------HARD CODED
 testImageList=[710];                                        %<<<-----------------------HARD CODED
 imagesList = [ trainImageList ,testImageList];
@@ -59,6 +54,7 @@ for imgNum=1:size(imagesList,2) %local image numbers
             data.DisparityRight=dispR;
             data.Cost=Cost;
             data.CostVolume=CostVolume;
+            data.CostVolumeR=CostVolumeR;
             data.ErrorRates=EvaluateDisp(AllImages(imagesList(imgNum)),double(dispL),errThreshold);
             save(fileName,'data');
         end
@@ -67,6 +63,7 @@ for imgNum=1:size(imagesList,2) %local image numbers
         dispData(algoCount,imgNum).right=data.DisparityRight;
         dispData(algoCount,imgNum).Cost=data.Cost;
         dispData(algoCount,imgNum).CostVolume=data.CostVolume;
+        dispData(algoCount,imgNum).CostVolumeR=data.CostVolumeR;
     end
     display([num2str(imagesList(imgNum)) 'done']);
 end
@@ -86,46 +83,63 @@ for imgNum=1:size(imagesList,2)
     imgPixelCount(imgNum)=width*height;
 end
 samplesNum=sum(imgPixelCount);
-input=zeros(samplesNum,5,k);                                %<<<-----------------------HARD CODED
+input=zeros(samplesNum,8,k);                                %<<<-----------------------HARD CODED
 class=zeros(samplesNum,k);
+load('confParam.mat');%params for fn_confidence_measure
 for imgNum=1:size(imagesList,2)
     display(['working on img ' num2str(imagesList(imgNum)) ]);
-
+    
     %pre-calculting all DDs LRCs and MEDs
-    display('Getting DD LRC MED' );
+    display('Getting all confidence measures!' );
     i=1;
-        DD=cmFunc{3}(dispData(i,imgNum).left);
-        LRC=cmFunc{5}(dispData(i,imgNum).left,dispData(i,imgNum).right );
-        MED=cmFunc{7}(dispData(i,imgNum).left);
-        sortedCostVol =sort(dispData(i,imgNum).CostVolume,3);
-        MM=cmFunc{8}(sortedCostVol);
-
+    %     DD=cmFunc{3}(dispData(i,imgNum).left);
+    %     LRC=cmFunc{5}(dispData(i,imgNum).left,dispData(i,imgNum).right );
+    %     MED=cmFunc{7}(dispData(i,imgNum).left);
+    %     sortedCostVol =sort(dispData(i,imgNum).CostVolume,3);
+    %     MM=cmFunc{8}(sortedCostVol);
+    %     LRD=cmFunc{6}(dispData(i,imgNum).left,dispData(i,imgNum).CostVolume,dispData(i,imgNum).CostVolumeR);
+    
+    imgL=imread(AllImages(imagesList(imgNum)).LImage);
+    maxDisparity=AllImages(imagesList(imgNum)).maxDisp;
+    M=size(imgL,1); N=size(imgL,2);
+    conf = fn_confidence_measure(imgL, dispData(i,imgNum).CostVolume,dispData(i,imgNum).CostVolumeR, maxDisparity , 1, confParam);
+    
+    DD=reshape(conf(17,:),[M N]);
+    LRC=reshape(conf(14,:),[M N]);
+    MED=reshape(conf(16,:),[M N]);
+    MM=reshape(conf(4,:),[M N]);
+    LRD=reshape(conf(8,:),[M N]);
+    AML=reshape(conf(11,:),[M N]);
+    DB=reshape(conf(19,:),[M N]);
     
     imgGT = GetGT(AllImages(imagesList(imgNum)));
     [~,imgMask,~]=EvaluateDisp(AllImages(imagesList(imgNum)),dispData(1,imgNum).left,0);
     i=1;
-        pCount=totalPCount;%number of pixels (samples)
-        truePixles = abs(dispData(i,imgNum).left - imgGT) <= errThreshold;
-        %badPixles(~imgMask) = 0;
-        
-        %making data
-        display(['making data for algorithm number ', num2str(i)]);
-        for x=1:size(dispData(i,imgNum).left,1)
-            for y=1:size(dispData(i,imgNum).left,2)
-                %in 2016-correctness.. Occluded pixels are ignored during training.
-                if ~(imgMask(x,y)==0 && imgNum<=size(trainImageList,2))
-                    pCount=pCount+1;
-
-                    %only using its own features                %<<<-----------------------HARD CODED
-                    input(pCount,1,i)=squeeze(DD(x,y));
-                    input(pCount,2,i)=squeeze(LRC(x,y));
-                    input(pCount,3,i)=squeeze(MED(x,y));
-                    input(pCount,4,i)=squeeze(MM(x,y));
-                    input(pCount,5,i)=squeeze(dispData(1,imgNum).Cost(x,y));
-                    class(pCount,i)= truePixles(x,y);%whether the disparity assigned to that pixel was correct (1) or not (0)
-                end
+    pCount=totalPCount;%number of pixels (samples)
+    truePixles = abs(dispData(i,imgNum).left - imgGT) <= errThreshold;
+    %badPixles(~imgMask) = 0;
+    
+    %making data
+    display(['making data for algorithm number ', num2str(i)]);
+    for x=1:size(dispData(i,imgNum).left,1)
+        for y=1:size(dispData(i,imgNum).left,2)
+            %in 2016-correctness.. Occluded pixels are ignored during training.
+            if ~(imgMask(x,y)==0 && imgNum<=size(trainImageList,2))
+                pCount=pCount+1;
+                
+                %only using its own features                %<<<-----------------------HARD CODED
+                input(pCount,1,i)=squeeze(DD(x,y));
+                input(pCount,2,i)=squeeze(LRC(x,y));
+                input(pCount,3,i)=squeeze(MED(x,y));
+                input(pCount,4,i)=squeeze(MM(x,y));
+                input(pCount,5,i)=squeeze(dispData(1,imgNum).Cost(x,y));
+                input(pCount,6,i)=squeeze(LRD(x,y));
+                input(pCount,7,i)=squeeze(AML(x,y));
+                input(pCount,8,i)=squeeze(DB(x,y));
+                class(pCount,i)= truePixles(x,y);%whether the disparity assigned to that pixel was correct (1) or not (0)
             end
         end
+    end
     
     totalPCount=pCount;
     if imgNum<=size(trainImageList,2)
@@ -170,8 +184,8 @@ display('testing...');
 % testInput=input(1+sum(imgPixelCountTrain):end,:,:);
 % testClass=class(1+sum(imgPixelCountTrain):end,:);%for AUC calculations
 
-testInput=input(1+trainCount:end,:,:);
-testClass=class(1+trainCount:end,:);%for AUC calculations
+testInput=input(1+trainCount:totalPCount,:,:);
+testClass=class(1+trainCount:totalPCount,:);%for AUC calculations
 for i=1:k
     [labels,confidence] = predict(RFs(i).model,testInput(:,:,i));
     %[RFs(i).labels,RFs(i).scores] = predict(RFs(i).model,testInput(:,:,i),'Trees',10:20);
@@ -189,17 +203,17 @@ for testImgNum=1:size(imgPixelCountTest,2)
     imgNum=testImgNum+size(imgPixelCountTrain,2);
     [imgW ,imgH]=size(dispData(1,imgNum).left);
     
-
+    
     Results(testImgNum).Values=reshape(values(1+ind1:ind2),[imgH imgW ])';
-
-            finalDisp=dispData(1,imgNum).left;
+    
+    finalDisp=dispData(1,imgNum).left;
     Results(testImgNum).FinalDisp=finalDisp;
     Results(testImgNum).Error=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp,errThreshold);
     [roc,pers]=GetROC(AllImages(imagesList(imgNum)),finalDisp,Results(testImgNum).Values,errThreshold);
     Results(testImgNum).ROC=roc;
     %The trapz function overestimates the value of the integral when f(x) is concave up.
     Results(testImgNum).AUC=GetAUC(roc,pers); %perfect AUC is err-(1-err)*ln(1-err)
-
+    
 end
 
 clear alldisps alldispsDif X Y roc pers imgGT imgNum i j x y labels confidence finalScores ind1 ind2 imgW imgH ind val
