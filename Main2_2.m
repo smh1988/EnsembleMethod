@@ -36,7 +36,7 @@ dispData=struct;
 errThreshold=1; %error threshold
 
 %real image mumbers in AllImages
-trainImageList=[705,706];                                   %<<<-----------------------HARD CODED
+trainImageList=[706];                                   %<<<-----------------------HARD CODED
 testImageList=[707];                                        %<<<-----------------------HARD CODED
 imagesList = [ trainImageList ,testImageList];
 
@@ -70,6 +70,7 @@ clear algoCount aNum data fileName
 k=size(algosNum,2); %number of active matchers
 display('making dataset...');
 totalPCount=0;
+trainCount=0;
 
 for imgNum=1:size(imagesList,2)
     width=size(dispData(1,imgNum).left,1);
@@ -121,38 +122,44 @@ for imgNum=1:size(imagesList,2)
             for y=1:size(dispData(i,imgNum).left,2)
                 %FIX: considering non-occluded pixels
                 %in 2016-correctness.. Occluded pixels are ignored during training.
-                pCount=pCount+1;
-                tmpCount=0;% always reachs to m-1
-                for j=1:k %index of secondary matcher
-                    if j~=i
-                        tmpCount=tmpCount+1;
-                        input(pCount,tmpCount,i)=agreementMat(j,i).diff(x,y);%ai
+                if ~(imgGT(x,y)==0 && imgNum<=size(trainImageList,2))%ignoring unknown pixles
+                    pCount=pCount+1;
+                    tmpCount=0;% always reachs to m-1
+                    for j=1:k %index of secondary matcher
+                        if j~=i
+                            tmpCount=tmpCount+1;
+                            input(pCount,tmpCount,i)=agreementMat(j,i).diff(x,y);%ai
+                        end
                     end
+                    %only using its own features                %<<<-----------------------HARD CODED
+                    input(pCount,5,i)=squeeze(DD(x,y,i));%DD
+                    input(pCount,6,i)=squeeze(LRC(x,y,i));%LRC
+                    input(pCount,7,i)=sum (input(pCount,1:tmpCount,i)==1);%TS
+                    input(pCount,8,i)=squeeze(MED(x,y,i));
+                    
+                    %using other features of other matchers
+                    %                 fInd=8;
+                    %                 for j=1:m %index of secondary matcher
+                    %                     if j~=i
+                    %                         ai=agreementMat(j,i).diff(x,y);
+                    %                         fInd=fInd+1;
+                    %                         input(pCount,fInd,i)=squeeze(DD(x,y,j))*ai;%aiDD
+                    %                         fInd=fInd+1;
+                    %                         input(pCount,fInd,i)=squeeze(LRC(x,y,j))*ai;%aiLRC
+                    %                         fInd=fInd+1;
+                    %                         input(pCount,fInd,i)=squeeze(MED(x,y,j))*ai;%aiMED
+                    %                     end
+                    %                 end
+                    class(pCount,i)= truePixles(x,y);%whether the disparity assigned to that pixel was correct (1) or not (0)
                 end
-                %only using its own features                %<<<-----------------------HARD CODED
-                input(pCount,5,i)=squeeze(DD(x,y,i));%DD
-                input(pCount,6,i)=squeeze(LRC(x,y,i));%LRC
-                input(pCount,7,i)=sum (input(pCount,1:tmpCount,i)==1);%TS
-                input(pCount,8,i)=squeeze(MED(x,y,i));
-                
-                %using other features of other matchers
-%                 fInd=8;
-%                 for j=1:m %index of secondary matcher
-%                     if j~=i
-%                         ai=agreementMat(j,i).diff(x,y);
-%                         fInd=fInd+1;
-%                         input(pCount,fInd,i)=squeeze(DD(x,y,j))*ai;%aiDD
-%                         fInd=fInd+1;
-%                         input(pCount,fInd,i)=squeeze(LRC(x,y,j))*ai;%aiLRC
-%                         fInd=fInd+1;
-%                         input(pCount,fInd,i)=squeeze(MED(x,y,j))*ai;%aiMED
-%                     end
-%                 end
-                class(pCount,i)= truePixles(x,y);%whether the disparity assigned to that pixel was correct (1) or not (0)
             end
         end
     end
     totalPCount=pCount;
+    unknownMask=imgGT~=0;
+    if imgNum<=size(trainImageList,2)
+        trainCount=trainCount+sum(unknownMask(:));
+    end
     display([num2str(imagesList(imgNum)) ' done']);
 end
 clear width height agreementMat DD LRC MED imgGT pCount tmpCount diff
@@ -161,9 +168,9 @@ clear width height agreementMat DD LRC MED imgGT pCount tmpCount diff
 %% TreeBagger
 imgPixelCountTrain=imgPixelCount(1:size(trainImageList,2));
 imgPixelCountTest=imgPixelCount(1+size(trainImageList,2):end);
-permutedIndices=randperm( sum(imgPixelCountTrain));
+permutedIndices=randperm( trainCount);
 portion=1;%in 0.25 the avg error increses 0.0002 and avg AUC increses 0.0006 (for 702:711)
-sampleCount=uint32( portion*sum(imgPixelCountTrain));
+sampleCount=uint32( portion*trainCount);
 trainIndices=permutedIndices (1:sampleCount);
 
 RFs=struct;%to store TreeBagger models
@@ -172,6 +179,9 @@ treesCount=50;
 %train and test sets
 trainInput=input(trainIndices,:,:);
 trainClass=class(trainIndices,:);
+testInput=input(1+trainCount:totalPCount,:,:);
+%testClass=class(1+trainCount:totalPCount,:);
+clear input class
 
 for i=1:k
     X=trainInput(:,:,i);
@@ -186,10 +196,10 @@ end
 
 %testing...
 display('testing...');
-testInput=input(1+sum(imgPixelCountTrain):end,:,:);
-testClass=class(1+sum(imgPixelCountTrain):end,:);%for AUC calculations
+finalScores=zeros(k,imgPixelCountTest);
+
 for i=1:k
-    [labels,confidence] = predict(RFs(i).model,testInput(:,:,i));
+    [~,confidence] = predict(RFs(i).model,testInput(:,:,i));
     %[RFs(i).labels,RFs(i).scores] = predict(RFs(i).model,testInput(:,:,i),'Trees',10:20);
     finalScores(i,:)=confidence(:,2);
     %finalLabels(i,:)=labels;
@@ -219,22 +229,22 @@ for testImgNum=1:size(imgPixelCountTest,2)
     %The trapz function overestimates the value of the integral when f(x) is concave up.
     %Results(testImgNum).AUC=GetAUC(roc,pers); %perfect AUC is err-(1-err)*ln(1-err)
     
-    %% other stuff                                                               
-    %best possible error                                                     
-%     finalDisp2=zeros(imgW,imgH);                                           
-%     imgGT = GetGT(AllImages(imagesList(imgNum)));                          
-%     for x=1:imgW                                                           
-%         for y=1:imgH                                                       
-%             for i=1:m                                                      
-%                 alldisps(i)=dispData(i,imgNum).left(x,y);                  
-%             end                                                            
-%             alldispsDif=abs(alldisps-imgGT(x,y));                          
-%             [val,ind]=min(alldispsDif);                                    
-%             finalDisp2(x,y)=alldisps(ind);                                 
-%         end                                                                
-%     end                                                                    
-%     BPE(imgNum)=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp2,errThreshold);
-                                                                             
+    %% other stuff
+    %best possible error
+    %     finalDisp2=zeros(imgW,imgH);
+    %     imgGT = GetGT(AllImages(imagesList(imgNum)));
+    %     for x=1:imgW
+    %         for y=1:imgH
+    %             for i=1:m
+    %                 alldisps(i)=dispData(i,imgNum).left(x,y);
+    %             end
+    %             alldispsDif=abs(alldisps-imgGT(x,y));
+    %             [val,ind]=min(alldispsDif);
+    %             finalDisp2(x,y)=alldisps(ind);
+    %         end
+    %     end
+    %     BPE(imgNum)=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp2,errThreshold);
+    
 end
 clear alldisps alldispsDif X Y roc pers imgGT imgNum i j x y labels confidence finalScores ind1 ind2 imgW imgH ind val
 
