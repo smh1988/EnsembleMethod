@@ -83,7 +83,7 @@ for imgNum=1:size(imagesList,2)
     imgPixelCount(imgNum)=width*height;
 end
 samplesNum=sum(imgPixelCount);
-input=zeros(samplesNum,5,k);                                %<<<-----------------------HARD CODED
+input=zeros(samplesNum,8,k);                                %<<<-----------------------HARD CODED
 class=zeros(samplesNum,k);
 load('confParam.mat');%params for fn_confidence_measure
 for imgNum=1:size(imagesList,2)
@@ -92,25 +92,22 @@ for imgNum=1:size(imagesList,2)
     %pre-calculting all DDs LRCs and MEDs
     display('Getting all confidence measures!' );
     i=1;
-        DD=cmFunc{3}(dispData(i,imgNum).left);
-        LRC=cmFunc{5}(dispData(i,imgNum).left,dispData(i,imgNum).right );
-        MED=cmFunc{7}(dispData(i,imgNum).left);
-        sortedCostVol =sort(dispData(i,imgNum).CostVolume,3);
-        MM=cmFunc{8}(sortedCostVol);
-    %     LRD=cmFunc{6}(dispData(i,imgNum).left,dispData(i,imgNum).CostVolume,dispData(i,imgNum).CostVolumeR);
+    DD=cmFunc{3}(dispData(i,imgNum).left);
+    LRC=cmFunc{5}(dispData(i,imgNum).left,dispData(i,imgNum).right );
+    MED=cmFunc{7}(dispData(i,imgNum).left);
+    sortedCostVol =sort(dispData(i,imgNum).CostVolume,3);
+    MM=cmFunc{8}(sortedCostVol);
+    DB=cmFunc{2}(dispData(i,imgNum).left);
+    %LRD=cmFunc{6}(dispData(i,imgNum).left,dispData(i,imgNum).CostVolume,dispData(i,imgNum).CostVolumeR);
     
-%     imgL=imread(AllImages(imagesList(imgNum)).LImage);
-%     maxDisparity=AllImages(imagesList(imgNum)).maxDisp;
-%     M=size(imgL,1); N=size(imgL,2);
-%     conf = fn_confidence_measure(imgL, dispData(i,imgNum).CostVolume,dispData(i,imgNum).CostVolumeR, maxDisparity , 1, confParam);
-%     
-%     DD=reshape(conf(17,:),[M N]);
-%     LRC=reshape(conf(14,:),[M N]);
-%     MED=reshape(conf(16,:),[M N]);
-%     MM=reshape(conf(4,:),[M N]);
-%     LRD=reshape(conf(8,:),[M N]);
-%     AML=reshape(conf(11,:),[M N]);
-%     DB=reshape(conf(19,:),[M N]);
+    imgL=imread(AllImages(imagesList(imgNum)).LImage);
+    maxDisparity=AllImages(imagesList(imgNum)).maxDisp;
+    M=size(imgL,1); N=size(imgL,2);
+    conf = fn_confidence_measure(imgL, dispData(i,imgNum).CostVolume,dispData(i,imgNum).CostVolumeR, maxDisparity , 1, confParam);
+    
+    %DD=reshape(conf(17,:),[M N]);
+    LRD=reshape(conf(4,:),[M N]);
+    AML=reshape(conf(11,:),[M N]);
     
     imgGT = GetGT(AllImages(imagesList(imgNum)));
     [~,imgMask,badPixels]=EvaluateDisp(AllImages(imagesList(imgNum)),dispData(1,imgNum).left,errThreshold);
@@ -131,9 +128,9 @@ for imgNum=1:size(imagesList,2)
                 input(pCount,3,i)=squeeze(MED(x,y));
                 input(pCount,4,i)=squeeze(MM(x,y));
                 input(pCount,5,i)=squeeze(dispData(1,imgNum).Cost(x,y));
-                %input(pCount,6,i)=squeeze(LRD(x,y));
-                %input(pCount,7,i)=squeeze(AML(x,y));
-                %input(pCount,8,i)=squeeze(DB(x,y));
+                input(pCount,6,i)=squeeze(LRD(x,y));
+                input(pCount,7,i)=squeeze(AML(x,y));
+                input(pCount,8,i)=squeeze(DB(x,y));
                 class(pCount,i)= ~badPixels(x,y);%whether the disparity assigned to that pixel was correct (1) or not (0)
             end
         end
