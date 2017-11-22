@@ -9,11 +9,9 @@ clc;
 DatasetDir;
 
 %% comparing the reults of ROC and AUC
-load('MiddleRes_NCC_5.mat');    %RF-NCC with 5 features
-load('MiddleRes_NCC_8.mat');    %RF-NCC with 8 features
-load('MiddleRes.mat');          %including unknown and occluded areas in training
-load('MiddleRes2.mat');         %including just occluded areas in training
-Res=MiddleRes2;
+load('MiddleRes_NCC.mat');    %RF-NCC
+load('MiddleRes.mat');    %RF-kMs
+Res=MiddleRes_NCC;
 
 addpath ('2016-Correctness');
 
