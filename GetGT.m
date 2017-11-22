@@ -18,7 +18,7 @@ if ImageStruct.type
         case 'KITTI2012'
             I = imread(ImageStruct.LDispNoc);
             imgGT = double(I)/256;
-            imgGT(I==0) = -1;
+            %imgGT(I==0) = -1;
 
         case 'Sintel'
             DISP = imread(ImageStruct.LDispOcc);
