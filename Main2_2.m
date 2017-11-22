@@ -33,11 +33,11 @@ cmNum = [ 3 5 7] ;
 display ('calculating disparities...');
 data=struct;
 dispData=struct;
-errThreshold=1; %error threshold
+errThreshold=3; %error threshold
 
 %real image mumbers in AllImages
-trainImageList=[706];                                   %<<<-----------------------HARD CODED
-testImageList=[707];                                        %<<<-----------------------HARD CODED
+trainImageList=[91];                                   %<<<-----------------------HARD CODED
+testImageList=[92];                                        %<<<-----------------------HARD CODED
 imagesList = [ trainImageList ,testImageList];
 
 for imgNum=1:size(imagesList,2) %local image numbers
@@ -113,8 +113,7 @@ for imgNum=1:size(imagesList,2)
     
     for i=1:k % so, primary matcher is i
         pCount=totalPCount;%number of pixels (samples)
-        truePixles = abs(dispData(i,imgNum).left - imgGT) <= errThreshold;
-        %badPixles(~imgMask) = 0;
+        truePixels = abs(dispData(i,imgNum).left - imgGT) <= errThreshold;
         
         %making data
         display(['making data for algorithm number ', num2str(i)]);
@@ -122,7 +121,7 @@ for imgNum=1:size(imagesList,2)
             for y=1:size(dispData(i,imgNum).left,2)
                 %FIX: considering non-occluded pixels
                 %in 2016-correctness.. Occluded pixels are ignored during training.
-                if ~(imgGT(x,y)==0 && imgNum<=size(trainImageList,2))%ignoring unknown pixles
+                if ~(imgGT(x,y)==0 && imgNum<=size(trainImageList,2))%ignoring unknown pixles but considering occluded pixels
                     pCount=pCount+1;
                     tmpCount=0;% always reachs to m-1
                     for j=1:k %index of secondary matcher
@@ -150,7 +149,7 @@ for imgNum=1:size(imagesList,2)
                     %                         input(pCount,fInd,i)=squeeze(MED(x,y,j))*ai;%aiMED
                     %                     end
                     %                 end
-                    class(pCount,i)= truePixles(x,y);%whether the disparity assigned to that pixel was correct (1) or not (0)
+                    class(pCount,i)= truePixels(x,y);%whether the disparity assigned to that pixel was correct (1) or not (0)
                 end
             end
         end
