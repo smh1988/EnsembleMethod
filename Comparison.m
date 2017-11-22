@@ -9,22 +9,26 @@ clc;
 DatasetDir;
 
 %% comparing the reults of ROC and AUC
-load('MiddleRes_NCC.mat');
-load('MiddleRes.mat');
+load('MiddleRes_NCC_5.mat');    %RF-NCC with 5 features
+load('MiddleRes_NCC_8.mat');    %RF-NCC with 8 features
+load('MiddleRes.mat');          %including unknown and occluded areas in training
+load('MiddleRes2.mat');         %including just occluded areas in training
+Res=MiddleRes2;
+
 addpath ('2016-Correctness');
 
-imagesList = [693:719];
-PCP=0;  PCN=0;
+imagesList = [693:719];%91 188
+PCP=0;  PCN=0; mp=0;
 FP=0;   FN=0;
 CN=0;   CP=0;
 TP=0;   TN=0;
-allIndices=zeros([1 5]);
+%allIndices=zeros([1 5]);
 for imgNum=1:27
-    [ dispError , imgMask , badPixels] = EvaluateDisp(AllImages(imagesList(imgNum)),MiddleRes(imgNum).FinalDisp,1);
-    
-    corrImg= MiddleRes(imgNum).Values > 0.5;
+    [ dispError , imgMask , badPixels] = EvaluateDisp(AllImages(imagesList(imgNum)),Res(imgNum).FinalDisp,1);%
+    %mp=mp+sum(imgMask(:));
+    corrImg= Res(imgNum).Values > 0.5;
     corrImg(~imgMask)=0;
-    incorrImg=MiddleRes(imgNum).Values <= 0.5;
+    incorrImg=Res(imgNum).Values <= 0.5;
     incorrImg(~imgMask)=0;
     
     truePixels=~badPixels;
@@ -41,8 +45,9 @@ for imgNum=1:27
 
     TP=TP+sum(corrImg(truePixels));
     TN=TN+sum(incorrImg(badPixels));
-    
-    err(imgNum)=dispError;
+     
+    %imshow(imgMask);waitforbuttonpress;
+%     err(imgNum)=dispError;
     %allIndices(1:5)=allIndices(1:5)+ histcounts(MiddleRes(imgNum).Indices);
     
     %NCC Cost
@@ -71,3 +76,4 @@ end
 TPR=TP/CP;
 TNR=TN/CN;
 total=PCP+PCN;
+ACC=(TP+TN)/total;
