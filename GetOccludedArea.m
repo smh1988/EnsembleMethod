@@ -3,21 +3,18 @@ function [ occArea ] = GetOccludedArea( imgL_d,imgR_d )
 %   this code is just for Middlebury 2005 and 2006 and left to right check
 %   in third size
 
-imgL_d=int16(imgL_d');
-imgR_d=int16(imgR_d');
-occArea=zeros(size(imgL_d));
+imgL_d=imgL_d';
+imgR_d=imgR_d';
+occArea=ones(size(imgL_d));
 for x=1:size(imgL_d,1)
     for y=1:size(imgL_d,2)
         lDispValue=imgL_d(x,y);
-        if (x-lDispValue)>=1
-            over=lDispValue-imgR_d(x-lDispValue,y);
-            if over<0  %<-1 gives less pixels as occluded
-                occArea(x,y)=1;
-            else
+        x1=round((x-lDispValue));
+        if x1>=1
+            diff=lDispValue-imgR_d(x1,y);
+            if diff >= 0  %>=-1 gives less pixels as occluded
                 occArea(x,y)=0;
             end
-        else
-            occArea(x,y)=1;
         end
     end
 end
