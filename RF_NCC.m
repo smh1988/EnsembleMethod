@@ -32,10 +32,10 @@ cfNum = [ 3 5 7 8] ;
 display ('calculating disparities...');
 data=struct;
 dispData=struct;
-errThreshold=1; %error threshold
+errThreshold=1; %error threshold                                  %<<<-----------------------HARD CODED
 addpath ('2016-Correctness');
 %real image mumbers in AllImages
-trainImageList=710;%[702:710, 711:719];                                   %<<<-----------------------HARD CODED
+trainImageList=[];%[708,709];%[702:710, 711:719];                                   %<<<-----------------------HARD CODED
 testImageList=710;%[693:701];                                        %<<<-----------------------HARD CODED
 imagesList = [ trainImageList ,testImageList];
 
@@ -55,10 +55,10 @@ for imgNum=1:size(imagesList,2) %local image numbers
             data.Cost=Cost;
             data.CostVolume=CostVolume;
             data.CostVolumeR=CostVolumeR;
-            data.ErrorRates=EvaluateDisp(AllImages(imagesList(imgNum)),double(dispL),errThreshold);
+            %data.ErrorRates=EvaluateDisp(AllImages(imagesList(imgNum)),double(dispL),errThreshold);
             save(fileName,'data');
         end
-        err(algoCount,imgNum)=EvaluateDisp(AllImages(imagesList(imgNum)),data.DisparityLeft,errThreshold);%data.ErrorRates;
+        %err(algoCount,imgNum)=EvaluateDisp(AllImages(imagesList(imgNum)),data.DisparityLeft,errThreshold);%data.ErrorRates;
         dispData(algoCount,imgNum).left=data.DisparityLeft;
         dispData(algoCount,imgNum).right=data.DisparityRight;
         dispData(algoCount,imgNum).Cost=data.Cost;
@@ -106,17 +106,18 @@ for imgNum=1:size(imagesList,2)
     conf = fn_confidence_measure(imgL, dispData(i,imgNum).CostVolume,dispData(i,imgNum).CostVolumeR, maxDisparity , 1, confParam);
     
 %     DD=reshape(conf(?,:),[M N]);
-%     LRC=reshape(conf(14,:),[M N]);
+%     LRC=reshape(conf(15,:),[M N]);
 %     MED=reshape(conf(?,:),[M N]);
 %     MM=reshape(conf(4,:),[M N]);
 %     DB=reshape(conf(?,:),[M N]);
     LRD=reshape(conf(8,:),[M N]);
     AML=reshape(conf(11,:),[M N]);
     
-    imgGT = GetGT(AllImages(imagesList(imgNum)));
+    %imgGT = GetGT(AllImages(imagesList(imgNum)));
     [~,imgMask,badPixels]=EvaluateDisp(AllImages(imagesList(imgNum)),dispData(1,imgNum).left,errThreshold);
     i=1;
     pCount=totalPCount;%number of pixels (samples)
+    %showMeasures;
     
     %making data
     display(['making data for algorithm number ', num2str(i)]);
@@ -146,7 +147,7 @@ for imgNum=1:size(imagesList,2)
     end
     display([num2str(imagesList(imgNum)) ' done']);
 end
-clear width height agreementMat DD LRC MED imgGT pCount tmpCount diff
+clear width height agreementMat DD LRC MED AML LRD MM DB imgGT pCount tmpCount diff
 
 
 %% TreeBagger
@@ -162,9 +163,12 @@ trainIndices=permutedIndices (1:sampleCount);
 RFs=struct;%to store TreeBagger models
 treesCount=50;
 %train and test sets
-
+%train and test sets
 trainInput=input(trainIndices,:,:);
-trainClass=class(trainIndices,:);%floor(totalPCount/2)
+trainClass=class(trainIndices,:);
+testInput=input(1+trainCount:totalPCount,:,:);
+%testClass=class(1+trainCount:totalPCount,:);
+clear input class
 
 for i=1:k
     X=trainInput(:,:,i);
@@ -180,11 +184,7 @@ end
 
 %testing...
 display('testing...');
-% testInput=input(1+sum(imgPixelCountTrain):end,:,:);
-% testClass=class(1+sum(imgPixelCountTrain):end,:);%for AUC calculations
 
-testInput=input(1+trainCount:totalPCount,:,:);
-testClass=class(1+trainCount:totalPCount,:);%for AUC calculations
 for i=1:k
     [labels,confidence] = predict(RFs(i).model,testInput(:,:,i));
     %[RFs(i).labels,RFs(i).scores] = predict(RFs(i).model,testInput(:,:,i),'Trees',10:20);
