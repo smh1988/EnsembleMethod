@@ -35,7 +35,7 @@ dispData=struct;
 errThreshold=1; %error threshold
 addpath ('2016-Correctness');
 %real image mumbers in AllImages
-trainImageList=709;%[702:710, 711:719];                                   %<<<-----------------------HARD CODED
+trainImageList=710;%[702:710, 711:719];                                   %<<<-----------------------HARD CODED
 testImageList=710;%[693:701];                                        %<<<-----------------------HARD CODED
 imagesList = [ trainImageList ,testImageList];
 
@@ -105,8 +105,12 @@ for imgNum=1:size(imagesList,2)
     M=size(imgL,1); N=size(imgL,2);
     conf = fn_confidence_measure(imgL, dispData(i,imgNum).CostVolume,dispData(i,imgNum).CostVolumeR, maxDisparity , 1, confParam);
     
-    %DD=reshape(conf(17,:),[M N]);
-    LRD=reshape(conf(4,:),[M N]);
+%     DD=reshape(conf(?,:),[M N]);
+%     LRC=reshape(conf(14,:),[M N]);
+%     MED=reshape(conf(?,:),[M N]);
+%     MM=reshape(conf(4,:),[M N]);
+%     DB=reshape(conf(?,:),[M N]);
+    LRD=reshape(conf(8,:),[M N]);
     AML=reshape(conf(11,:),[M N]);
     
     imgGT = GetGT(AllImages(imagesList(imgNum)));
@@ -197,8 +201,7 @@ for testImgNum=1:size(imgPixelCountTest,2)
     ind2=ind1+imgPixelCountTest(testImgNum);
     imgNum=testImgNum+size(imgPixelCountTrain,2);
     [imgW ,imgH]=size(dispData(1,imgNum).left);
-    
-    
+
     Results(testImgNum).Values=reshape(values(1+ind1:ind2),[imgH imgW ])';
     
     finalDisp=dispData(1,imgNum).left;
@@ -210,7 +213,7 @@ for testImgNum=1:size(imgPixelCountTest,2)
     Results(testImgNum).AUC=GetAUC(roc,pers); %perfect AUC is err-(1-err)*ln(1-err)
     
 end
-
+figure;imshow(Results(1).Values);
 clear alldisps alldispsDif X Y roc pers imgGT imgNum i j x y labels confidence finalScores ind1 ind2 imgW imgH ind val
 load chirp % chirp handel  gong
 sound(y,Fs);    display('Job Done.');
