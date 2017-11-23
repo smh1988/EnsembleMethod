@@ -10,7 +10,7 @@ DatasetDir;
 
 %% comparing the reults of ROC and AUC
 load('MiddleRes_NCC.mat');    %RF-NCC
-load('MiddleRes.mat');    %RF-kMs
+%load('MiddleRes.mat');    %RF-kMs
 Res=MiddleRes_NCC;
 
 addpath ('2016-Correctness');
@@ -44,7 +44,7 @@ for imgNum=1:27
     TP=TP+sum(corrImg(truePixels));
     TN=TN+sum(incorrImg(badPixels));
      
-    %imshow(imgMask);waitforbuttonpress;
+    %imshow(Res(imgNum).Values,[]);waitforbuttonpress;
 %     err(imgNum)=dispError;
     %allIndices(1:5)=allIndices(1:5)+ histcounts(MiddleRes(imgNum).Indices);
     

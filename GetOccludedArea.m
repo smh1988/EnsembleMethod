@@ -11,8 +11,8 @@ for x=1:size(imgL_d,1)
         lDispValue=imgL_d(x,y);
         x1=(x-round(lDispValue));
         if x1>=1
-            diff=abs(lDispValue-imgR_d(x1,y));
-            if diff< 1
+            diff=abs(lDispValue-imgR_d(x1,y));%diff=lDispValue-imgR_d(x1,y);
+            if diff< 1 %if diff>=0
                 occArea(x,y)=0;
             end
         end

@@ -1,7 +1,7 @@
 %% DESCRIPTION
 % Dataset: any
 % images: from dataset
-% features: DD LRC MED MM
+% features: DD LRC MED MM DB LRD AML NCC
 % algorithms: NCC
 % classifier: TreeBagger
 
@@ -18,12 +18,7 @@ DatasetDir;
 %loading all functions in arrays
 FunctionsDir;
 
-algosNum = [ 4 5 9 10 11] ;                                 %<<<-----------------------HARD CODED
-%select desired algorithms from the list below and put its number in the list
-%1-ADSM  2-ARWSM 3-BMSM  4-BSM   5-ELAS  6-FCVFSM   7-SGSM  8-SSCA  9-WCSM
-%10-MeshSM 11-NCC
-
-cfNum = [ 3 5 7 8] ;
+cfNum = [] ;
 %select desired Confidence Measures from the list below and put its number in the list
 %   1-AML  2-DB 3-DD 4-HGM 5-LRC 6-LRD 7-MED 8-MM
 
