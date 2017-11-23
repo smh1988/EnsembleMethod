@@ -9,10 +9,10 @@ occArea=ones(size(imgL_d));
 for x=1:size(imgL_d,1)
     for y=1:size(imgL_d,2)
         lDispValue=imgL_d(x,y);
-        x1=round((x-lDispValue));
+        x1=(x-round(lDispValue));
         if x1>=1
-            diff=lDispValue-imgR_d(x1,y);
-            if diff >= 0  %>=-1 gives less pixels as occluded
+            diff=abs(lDispValue-imgR_d(x1,y));
+            if diff< 1
                 occArea(x,y)=0;
             end
         end
