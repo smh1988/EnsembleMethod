@@ -27,17 +27,21 @@ cmNum = [ 3 5 7] ;
 %select desired Confidence Measures from the list below and put its number in the list
 %   1-AML  2-DB 3-DD 4-HGM 5-LRC 6-LRD 7-MED 8-MM
 
+% to be used in PSO Optimization
+% addpath('optimizers');
+% fun=str2func('EvaluateWeights');
+% global finalScores k imgPixelCountTest imgPixelCountTrain dispData AllImages imagesList errThreshold
 
 %% reading or calculating errors for images (left and right)
 
 display ('calculating disparities...');
 data=struct;
 dispData=struct;
-errThreshold=3; %error threshold
+errThreshold=1; %error threshold                            %<<<-----------------------HARD CODED
 
 %real image mumbers in AllImages
-trainImageList=[91];                                   %<<<-----------------------HARD CODED
-testImageList=[92];                                        %<<<-----------------------HARD CODED
+trainImageList=[709];                                   %<<<-----------------------HARD CODED
+testImageList=[710];                                        %<<<-----------------------HARD CODED
 imagesList = [ trainImageList ,testImageList];
 
 for imgNum=1:size(imagesList,2) %local image numbers
@@ -205,6 +209,23 @@ for i=1:k
 end
 [values, indices]=max(finalScores);
 
+% PSO Optimization
+% FIX: This part should optimize algoW over train images
+% lb=zeros(k,1);
+% ub=ones(k,1);
+% penalty=0;
+% popsize=20;
+% maxiter=50;
+% maxrun=2;
+% algoW = PartSwamOpt(fun, [], [], lb, ub, penalty, popsize, maxiter, maxrun);
+% 
+% weightedScores=zeros(k,imgPixelCountTest);
+% for w=1:k;
+%     weightedScores(w,:)=algoW(w)*finalScores(w,:);
+% end
+% [values, indices]=max(weightedScores);
+
+
 %getting results per image
 Results=struct;
 for testImgNum=1:size(imgPixelCountTest,2)
@@ -245,6 +266,6 @@ for testImgNum=1:size(imgPixelCountTest,2)
     %     BPE(imgNum)=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp2,errThreshold);
     
 end
-clear alldisps alldispsDif X Y roc pers imgGT imgNum i j x y labels confidence finalScores ind1 ind2 imgW imgH ind val
+clear alldisps alldispsDif X Y roc pers imgGT imgNum i j x y labels confidence ind1 ind2 imgW imgH ind val
 
 load chirp; sound(y,Fs);	display('Job Done.');
