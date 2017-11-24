@@ -10,23 +10,26 @@ DatasetDir;
 
 %% comparing the reults of ROC and AUC
 load('MiddleRes_NCC.mat');    %RF-NCC
-%load('MiddleRes.mat');    %RF-kMs
-Res=MiddleRes_NCC;
+load('MiddleRes.mat');    %RF-kMs
+Res=MiddleRes;
 
 addpath ('2016-Correctness');
 
 imagesList = [693:719];%91 188
+%for val=[0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9]
+val=0.5;
 PCP=0;  PCN=0; mp=0;
 FP=0;   FN=0;
 CN=0;   CP=0;
 TP=0;   TN=0;
 %allIndices=zeros([1 5]);
+
 for imgNum=1:27
     [ dispError , imgMask , badPixels] = EvaluateDisp(AllImages(imagesList(imgNum)),Res(imgNum).FinalDisp,1);%
     %mp=mp+sum(imgMask(:));
-    corrImg= Res(imgNum).Values > 0.5;
+    corrImg= Res(imgNum).Values > val;
     corrImg(~imgMask)=0;
-    incorrImg=Res(imgNum).Values <= 0.5;
+    incorrImg=Res(imgNum).Values <= val;
     incorrImg(~imgMask)=0;
     
     truePixels=~badPixels;
@@ -70,8 +73,14 @@ end
 
 %CP=TP+FP;
 %CN=FP+TN;
-
 TPR=TP/CP;
 TNR=TN/CN;
-total=PCP+PCN;
+total=CP+CN;
 ACC=(TP+TN)/total;
+
+% TPR(val*10)=TP/CP;
+% TNR(val*10)=TN/CN;
+% total=CP+CN;
+% ACC(val*10)=(TP+TN)/total;
+% 
+% end
