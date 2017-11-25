@@ -30,8 +30,8 @@ dispData=struct;
 errThreshold=1; %error threshold                                  %<<<-----------------------HARD CODED
 addpath ('2016-Correctness');
 %real image mumbers in AllImages
-trainImageList=[];%[708,709];%[702:710, 711:719];                                   %<<<-----------------------HARD CODED
-testImageList=710;%[693:701];                                        %<<<-----------------------HARD CODED
+trainImageList=[710];%[708,709];%[702:710, 711:719]; [91:187];        %<<<-----------------------HARD CODED
+testImageList=709;%[693:701]; [188:284];                          %<<<-----------------------HARD CODED
 imagesList = [ trainImageList ,testImageList];
 
 for imgNum=1:size(imagesList,2) %local image numbers
@@ -80,7 +80,7 @@ end
 samplesNum=sum(imgPixelCount);
 input=zeros(samplesNum,8,k);                                %<<<-----------------------HARD CODED
 class=zeros(samplesNum,k);
-load('confParam.mat');%params for fn_confidence_measure
+load('confParam2.mat');%params for fn_confidence_measure
 for imgNum=1:size(imagesList,2)
     display(['working on img ' num2str(imagesList(imgNum)) ]);
     
@@ -93,7 +93,7 @@ for imgNum=1:size(imagesList,2)
     sortedCostVol =sort(dispData(i,imgNum).CostVolume,3);
     MM=cmFunc{8}(sortedCostVol);
     DB=cmFunc{2}(dispData(i,imgNum).left);
-    %LRD=cmFunc{6}(dispData(i,imgNum).left,dispData(i,imgNum).CostVolume,dispData(i,imgNum).CostVolumeR);
+    LRD=cmFunc{6}(dispData(i,imgNum).left,dispData(i,imgNum).CostVolume,dispData(i,imgNum).CostVolumeR);
     
     imgL=imread(AllImages(imagesList(imgNum)).LImage);
     maxDisparity=AllImages(imagesList(imgNum)).maxDisp;
@@ -105,8 +105,8 @@ for imgNum=1:size(imagesList,2)
 %     MED=reshape(conf(?,:),[M N]);
 %     MM=reshape(conf(4,:),[M N]);
 %     DB=reshape(conf(?,:),[M N]);
-    LRD=reshape(conf(8,:),[M N]);
-    AML=reshape(conf(11,:),[M N]);
+%    LRD=reshape(conf(1,:),[M N]);
+    AML=reshape(conf(2,:),[M N]);
     
     %imgGT = GetGT(AllImages(imagesList(imgNum)));
     [~,imgMask,badPixels]=EvaluateDisp(AllImages(imagesList(imgNum)),dispData(1,imgNum).left,errThreshold);
@@ -146,18 +146,19 @@ clear width height agreementMat DD LRC MED AML LRD MM DB imgGT pCount tmpCount d
 
 
 %% TreeBagger
-imgPixelCountTrain=imgPixelCount(1:size(trainImageList,2));
+%imgPixelCountTrain=imgPixelCount(1:size(trainImageList,2));
 imgPixelCountTest=imgPixelCount(1+size(trainImageList,2):end);
-%permutedIndices=randperm( sum(imgPixelCountTrain));
-permutedIndices=randperm( trainCount);
-portion=1;%in 0.25 the avg error increses 0.0002 and avg AUC increses 0.0006 (for 702:711)
-%sampleCount=uint32( portion*sum(imgPixelCountTrain));
-sampleCount=uint32( portion*trainCount);
-trainIndices=permutedIndices (1:sampleCount);
+
+% is permuting needed?
+% permutedIndices=randperm( trainCount);
+% portion=1;%in 0.25 the avg error increses 0.0002 and avg AUC increses 0.0006 (for 702:711)
+% sampleCount=uint32( portion*trainCount);
+% trainIndices=permutedIndices (1:sampleCount);
+trainIndices=1:trainCount;
 
 RFs=struct;%to store TreeBagger models
 treesCount=50;
-%train and test sets
+
 %train and test sets
 trainInput=input(trainIndices,:,:);
 trainClass=class(trainIndices,:);
@@ -169,9 +170,9 @@ for i=1:k
     X=trainInput(:,:,i);
     Y=trainClass(:,i);
     display(['training RF number ' num2str(i)]);
+    RFs(i).model=compact (TreeBagger(treesCount,X,Y,'MinLeafSize',5000,'NumPredictorsToSample',1  ));%,'MergeLeaves','on'
+    
     %RFs(i).model=TreeBagger(treesCount,X,Y,'OOBPrediction','on');
-    RFs(i).model=compact (TreeBagger(treesCount,X,Y,'MinLeafSize',5000 ));%,'MergeLeaves','on'
-    %RFs(i).model=TreeBagger(treesCount,X,Y);
     %RFs(i).treeErrors = oobError(RFs(i).model);%out of bag error
     %tr10 = RFs(i).model.Trees{10};
     %view(tr10,'Mode','graph');
@@ -194,7 +195,7 @@ Results=struct;
 for testImgNum=1:size(imgPixelCountTest,2)
     ind1=sum(imgPixelCountTest(1:testImgNum-1));
     ind2=ind1+imgPixelCountTest(testImgNum);
-    imgNum=testImgNum+size(imgPixelCountTrain,2);
+    imgNum=testImgNum+size(trainImageList,2);
     [imgW ,imgH]=size(dispData(1,imgNum).left);
 
     Results(testImgNum).Values=reshape(values(1+ind1:ind2),[imgH imgW ])';
