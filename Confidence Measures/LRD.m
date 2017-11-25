@@ -1,32 +1,23 @@
-function LRDR=LRD(dispL,dispRange,sortedCostVol,sortedCostVolR)
+function LRDvalue=LRD(dispL,sortedCostVol,sortedCostVolR)
 
 %% LRD
 %Left–Right Difference (LRD)
-disp('calculate LRD')
-tic
-disp_scale = 256 / dispRange;
-
-[w , h ]=size(dispL);
-LRDR=zeros(w,h);
-for i=1:w
-    for j=1:h
-        dl_l=uint8(dispL(i,j)/disp_scale);
-        if(i-dl_l>=0 && dl_l >= 0)
-            den = abs(sortedCostVol(i,j,1)-sortedCostVolR(i,i-dl_l+1,1));
-            if( den==0)
-                LRDR(i,j)=1;
-            else
-                LRDR(i,j)=sortedCostVol(i,j,2) - sortedCostVol(i,j,1) / den;
-            end
-            
+c_1=sortedCostVol(:,:,1);
+c_2=sortedCostVol(:,:,2);
+[M N ~] = size(dispL);
+lrd_map = zeros(M, N);
+for i = 1:M
+    for j = 1:N
+        left_value = dispL(i,j);
+        offset = double(j) - round(double(left_value));
+        if offset > 0 && offset <= N
+            %lrd_map(i,j) = abs(dsiR(i, offset, left_value) - min(dsiR(i, offset, :)));
+            lrd_map(i,j) = abs(c_1(i, j) - min(sortedCostVolR(i, offset, :))); %changed by mahdi
+        else
+            lrd_map(i,j) = 0;
         end
     end
 end
-
-% LRDR=(sortedCostVol(:,:,1)-sortedCostVol(:,:,2)) ...
-%     ./ (abs(sortedCostVol(:,:,1)-sortedCostVolR(:,:,1)));
-
-disp('LRD finish on:')
-toc
+LRDvalue = (c_2 - c_1)./(lrd_map + 0.0001);
 
 end
