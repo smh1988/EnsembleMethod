@@ -18,16 +18,16 @@ imgR=permute(imgR,[2 1 3]);
 imgsize=size(imgL);
 imgL=padarray(imgL,[halfW+maxdisp halfW 0],'replicate');
 imgR=padarray(imgR,[halfW+maxdisp halfW 0],'replicate');
-imgL=double(imgL);
-imgR=double(imgR);
+imgL=double(imgL)/255;
+imgR=double(imgR)/255;
 
-lr= imgL(:,:,1);
-lg =imgL(:,:,2);
-lb= imgL(:,:,3);
-
-rr= imgR(:,:,1)';
-rg =imgR(:,:,2)';
-rb= imgR(:,:,3)';
+% lr= imgL(:,:,1);
+% lg =imgL(:,:,2);
+% lb= imgL(:,:,3);
+% 
+% rr= imgR(:,:,1)';
+% rg =imgR(:,:,2)';
+% rb= imgR(:,:,3)';
 
 h = fspecial('average', [w w]);
 %pre-making all means
@@ -39,20 +39,19 @@ meansL(:,:,3)=imfilter(imgL(:,:,3), h);
 meansR(:,:,3)=imfilter(imgR(:,:,3), h);
 
 
-stdsL=stdfilt(imgL-meansL,ones(w,w,w));
-stdsR=stdfilt(imgR-meansR,ones(w,w,w));
-imgL_d=zeros(size(imgL));
-
+stdsL=stdfilt(imgL,ones(w,w,w));
+stdsR=stdfilt(imgR,ones(w,w,w));
+costs=zeros(maxdisp,1);
+CostVol = zeros (imgsize(1),imgsize(2),maxdisp);
 
 for x=1+halfW+maxdisp:size(imgL,1)-halfW-maxdisp
     for y=1+halfW:size(imgL,2)-halfW
         roiL=imgL((x-halfW):(x+halfW),(y-halfW):(y+halfW),:);
         meanL=squeeze(meansL(x,y,:));
         stdL=stdsL(x,y);
-        
         for d=1:maxdisp
             %Cost computing ->NCC
-            sum1=0;
+            sumC=0;
             
             roiR=imgR((x-halfW-d):(x+halfW-d),(y-halfW):(y+halfW),:);%type casting!
             %roiR=double(r((x-halfW+d):(x+halfW+d),(y-halfW):(y+halfW)));%for right to left disparity
@@ -60,33 +59,22 @@ for x=1+halfW+maxdisp:size(imgL,1)-halfW-maxdisp
             stdR=stdsR(x-d,y);
             for i=1:w
                 for j=1:w %notation of the paper was wrong!
-                    sum1=sum1-mean((squeeze(roiL(i,j,:))-meanL).*(squeeze(roiR(i,j,:))-meanR));
+                    sumC=sumC-(squeeze(roiL(i,j,:))-meanL).*(squeeze(roiR(i,j,:))-meanR);
                 end
             end
-            costs(d)=sum1/(stdL*stdR);
-            if costs(d)>0
-                costs(d)=0;
-            end
+            costs(d)=sum(sumC)/(stdL*stdR);
         end
-        %         waitforbuttonpress();
-        %         cla;
-        %         bestMatch=zeros(maxdisp,1);
-        %         bestMatch(round(displ(x,y)')+1,1)=min(costs);
-        %         hold on;
-        %         plot(costs);
-        %         plot(bestMatch);
-        %         hold off;
-        %         waitforbuttonpress();
-        %         cla;
-        %WTA
-        [val ,ind ]=min(costs);
-        imgL_d(x,y)=ind;
-        %valMap(x,y)=val;
+        CostVol(x,y,:)=costs;
     end
+    disp(x);
 end
+%cropping and transposing
+CostVolume=permute(conj(CostVol(1+halfW+maxdisp:size(imgL,1)-halfW-maxdisp,1+halfW:size(imgL,2)-halfW,:)),[2 1 3]);
+CostVolume(isinf(CostVolume))=1;
 
-imgL_d=imcrop(imgL_d,[1+halfW 1+halfW+maxdisp imgsize(2)-1 imgsize(1)-1]);
-imgL_d=imgL_d';
+tmpCostVol=CostVolume;
+tmpCostVol(tmpCostVol>0)=0;%All positive cost values are truncated to 0.
+[~ ,imgL_d ]=min(tmpCostVol,[],3);
 
 
 % 
