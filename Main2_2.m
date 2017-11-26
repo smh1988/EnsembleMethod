@@ -11,7 +11,6 @@ close all;
 clear all;
 clc;
 
-%%
 %loading image names and locations
 DatasetDir;
 
@@ -31,6 +30,12 @@ cmNum = [ 3 5 7] ;
 % addpath('optimizers');
 % fun=str2func('EvaluateWeights');
 % global finalScores k imgPixelCountTest imgPixelCountTrain dispData AllImages imagesList errThreshold
+
+maxRun=10;
+treesCount=50;
+MinLS=5000;
+NumPTS=1;
+
 
 %% reading or calculating errors for images (left and right)
 
@@ -59,10 +64,10 @@ for imgNum=1:size(imagesList,2) %local image numbers
             data.TimeCosts=toc;
             data.DisparityLeft=dispL;
             data.DisparityRight=dispR;
-            data.ErrorRates=EvaluateDisp(AllImages(imagesList(imgNum)),double(dispL),errThreshold);
+            %data.ErrorRates=EvaluateDisp(AllImages(imagesList(imgNum)),double(dispL),errThreshold);
             save(fileName,'data');
         end
-        err(algoCount,imgNum)=EvaluateDisp(AllImages(imagesList(imgNum)),data.DisparityLeft,errThreshold);%data.ErrorRates;
+        %err(algoCount,imgNum)=EvaluateDisp(AllImages(imagesList(imgNum)),data.DisparityLeft,errThreshold);%data.ErrorRates;
         dispData(algoCount,imgNum).left=data.DisparityLeft;
         dispData(algoCount,imgNum).right=data.DisparityRight;
     end
@@ -169,15 +174,16 @@ clear width height agreementMat DD LRC MED imgGT pCount tmpCount diff
 
 
 %% TreeBagger
-imgPixelCountTrain=imgPixelCount(1:size(trainImageList,2));
+%% TreeBagger
+%imgPixelCountTrain=imgPixelCount(1:size(trainImageList,2));
 imgPixelCountTest=imgPixelCount(1+size(trainImageList,2):end);
-permutedIndices=randperm( trainCount);
-portion=1;%in 0.25 the avg error increses 0.0002 and avg AUC increses 0.0006 (for 702:711)
-sampleCount=uint32( portion*trainCount);
-trainIndices=permutedIndices (1:sampleCount);
 
-RFs=struct;%to store TreeBagger models
-treesCount=50;
+% is permuting needed?
+% permutedIndices=randperm( trainCount);
+% portion=1;%in 0.25 the avg error increses 0.0002 and avg AUC increses 0.0006 (for 702:711)
+% sampleCount=uint32( portion*trainCount);
+% trainIndices=permutedIndices (1:sampleCount);
+trainIndices=1:trainCount;
 
 %train and test sets
 trainInput=input(trainIndices,:,:);
@@ -186,12 +192,13 @@ testInput=input(1+trainCount:totalPCount,:,:);
 %testClass=class(1+trainCount:totalPCount,:);
 clear input class
 
+RFs=struct;%to store TreeBagger models
 for i=1:k
     X=trainInput(:,:,i);
     Y=trainClass(:,i);
     display(['training RF number ' num2str(i)]);
     %RFs(i).model=TreeBagger(treesCount,X,Y,'OOBPrediction','on');
-    RFs(i).model=compact (TreeBagger(treesCount,X,Y,'MinLeafSize',5000 ));%,'MergeLeaves','on'
+    RFs(i).model=compact (TreeBagger(treesCount,X,Y,'MinLeafSize',MinLS,'NumPredictorsToSample',NumPTS));%,'MergeLeaves','on'
     %RFs(i).treeErrors = oobError(RFs(i).model);%out of bag error
     %tr10 = RFs(i).model.Trees{10};
     %view(tr10,'Mode','graph');
@@ -199,7 +206,7 @@ end
 
 %testing...
 display('testing...');
-finalScores=zeros(k,imgPixelCountTest);
+finalScores=zeros(k,sum(imgPixelCountTest));
 
 for i=1:k
     [~,confidence] = predict(RFs(i).model,testInput(:,:,i));
@@ -231,7 +238,7 @@ Results=struct;
 for testImgNum=1:size(imgPixelCountTest,2)
     ind1=sum(imgPixelCountTest(1:testImgNum-1));
     ind2=ind1+imgPixelCountTest(testImgNum);
-    imgNum=testImgNum+size(imgPixelCountTrain,2);
+    imgNum=testImgNum+size(trainImageList,2);
     [imgW ,imgH]=size(dispData(1,imgNum).left);
     
     Results(testImgNum).Indices=reshape(indices(1+ind1:ind2),[imgH imgW ])';
