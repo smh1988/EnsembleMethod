@@ -197,8 +197,11 @@ for i=1:k
     X=trainInput(:,:,i);
     Y=trainClass(:,i);
     display(['training RF number ' num2str(i)]);
-    %RFs(i).model=TreeBagger(treesCount,X,Y,'OOBPrediction','on');
-    RFs(i).model=compact (TreeBagger(treesCount,X,Y,'MinLeafSize',MinLS,'NumPredictorsToSample',NumPTS));%,'MergeLeaves','on'
+%     'OOBPrediction','on'
+%     'MergeLeaves','on'
+%     'MinLeafSize',MinLS
+%     'NumPredictorsToSample',NumPTS 
+    RFs(i).model=compact (TreeBagger(treesCount,X,Y));
     %RFs(i).treeErrors = oobError(RFs(i).model);%out of bag error
     %tr10 = RFs(i).model.Trees{10};
     %view(tr10,'Mode','graph');
@@ -250,28 +253,14 @@ for testImgNum=1:size(imgPixelCountTest,2)
         end
     end
     Results(testImgNum).FinalDisp=finalDisp;
-    %Results(testImgNum).Error=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp,errThreshold);
-    %[roc,pers]=GetROC(AllImages(imagesList(imgNum)),finalDisp,Results(testImgNum).Values);
-    %Results(testImgNum).ROC=roc;
+    Results(testImgNum).Error=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp,errThreshold);
+    [roc,pers]=GetROC(AllImages(imagesList(imgNum)),finalDisp,Results(testImgNum).Values,errThreshold);
+    Results(testImgNum).ROC=roc;
     %The trapz function overestimates the value of the integral when f(x) is concave up.
-    %Results(testImgNum).AUC=GetAUC(roc,pers); %perfect AUC is err-(1-err)*ln(1-err)
+    Results(testImgNum).AUC=GetAUC(roc,pers); %perfect AUC is err-(1-err)*ln(1-err)
     
-    %% other stuff
-    %best possible error
-    %     finalDisp2=zeros(imgW,imgH);
-    %     imgGT = GetGT(AllImages(imagesList(imgNum)));
-    %     for x=1:imgW
-    %         for y=1:imgH
-    %             for i=1:m
-    %                 alldisps(i)=dispData(i,imgNum).left(x,y);
-    %             end
-    %             alldispsDif=abs(alldisps-imgGT(x,y));
-    %             [val,ind]=min(alldispsDif);
-    %             finalDisp2(x,y)=alldisps(ind);
-    %         end
-    %     end
-    %     BPE(imgNum)=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp2,errThreshold);
-    
+    %new ensemble stereo matching performance measure!
+    %BestPossibleError;
 end
 clear alldisps alldispsDif X Y roc pers imgGT imgNum i j x y labels confidence ind1 ind2 imgW imgH ind val
 

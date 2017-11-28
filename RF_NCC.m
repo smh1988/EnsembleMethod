@@ -24,7 +24,7 @@ cfNum = [] ;
 addpath ('2016-Correctness');
 addpath('PostProcessing/FastPD');   %MRF
 load('confParam2.mat');             %params for fn_confidence_measure
-maxRun=10;
+maxRun=1;
 treesCount=50;
 MinLS=5000;
 NumPTS=1;
@@ -37,7 +37,7 @@ dispData=struct;
 errThreshold=1; %error threshold                                  %<<<-----------------------HARD CODED
 %real image mumbers in AllImages
 trainImageList=[710];%[708,709];%[702:710, 711:719]; [91:187];        %<<<-----------------------HARD CODED
-testImageList=709;%[693:701]; [188:284];                          %<<<-----------------------HARD CODED
+testImageList=710;%[693:701]; [188:284];                          %<<<-----------------------HARD CODED
 imagesList = [ trainImageList ,testImageList];
 
 for imgNum=1:size(imagesList,2) %local image numbers
@@ -209,7 +209,7 @@ for run=1:maxRun
         [roc,pers]=GetROC(AllImages(imagesList(imgNum)),finalDisp,Results(testImgNum).Values,errThreshold);
         Results(testImgNum).ROC=roc;
         %The trapz function overestimates the value of the integral when f(x) is concave up.
-        Results(testImgNum).AUC=GetAUC(roc,pers) %perfect AUC is err-(1-err)*ln(1-err)
+        Results(testImgNum).AUC=GetAUC(roc,pers); %perfect AUC is err-(1-err)*ln(1-err)
         
     end
     %figure;imshow(Results(1).Values);
