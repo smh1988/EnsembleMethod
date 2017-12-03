@@ -45,8 +45,21 @@ dispData=struct;
 errThreshold=1; %error threshold                            %<<<-----------------------HARD CODED
 
 %real image mumbers in AllImages
-trainImageList=[709];                                   %<<<-----------------------HARD CODED
-testImageList=[710];                                        %<<<-----------------------HARD CODED
+fold=0;                                                        %<<<-----------------------HARD CODED
+switch fold
+    case 1
+        trainImageList=[702:710, 711:719];
+        testImageList=693:701;
+    case 2
+        trainImageList=[693:701, 711:719];
+        testImageList=702:710;
+    case 3
+        trainImageList=[693:701, 702:710];
+        testImageList=711:719;
+    otherwise
+        trainImageList=[708,709];                                   %<<<-----------------------HARD CODED
+        testImageList=[710];                                        %<<<-----------------------HARD CODED
+end
 imagesList = [ trainImageList ,testImageList];
 
 for imgNum=1:size(imagesList,2) %local image numbers
@@ -113,24 +126,25 @@ for imgNum=1:size(imagesList,2)
     LRC=DD;
     MED=DD;
     for i=1:k
-        DD(:,:,i)=cmFunc{3}(dispData(i,imgNum).left);
-        LRC(:,:,i)=cmFunc{5}(dispData(i,imgNum).left,dispData(i,imgNum).right );
+        DD(:,:,i)=cmFunc{9}(dispData(i,imgNum).left);
+        LRC(:,:,i)=cmFunc{10}(dispData(i,imgNum).left,dispData(i,imgNum).right );
         MED(:,:,i)=cmFunc{7}(dispData(i,imgNum).left);
     end
     
-    imgGT = GetGT(AllImages(imagesList(imgNum)));
+    %imgGT = GetGT(AllImages(imagesList(imgNum)));
     
     for i=1:k % so, primary matcher is i
         pCount=totalPCount;%number of pixels (samples)
-        truePixels = abs(dispData(i,imgNum).left - imgGT) <= errThreshold;
-        
+        %truePixels = abs(dispData(i,imgNum).left - imgGT) <= errThreshold;
+        [~,imgMask,badPixels]=EvaluateDisp(AllImages(imagesList(imgNum)),dispData(i,imgNum).left,errThreshold);
+        truePixels=imgMask.*(~badPixels);
         %making data
         display(['making data for algorithm number ', num2str(i)]);
         for x=1:size(dispData(i,imgNum).left,1)
             for y=1:size(dispData(i,imgNum).left,2)
                 %FIX: considering non-occluded pixels
                 %in 2016-correctness.. Occluded pixels are ignored during training.
-                if ~(imgGT(x,y)==0 && imgNum<=size(trainImageList,2))%ignoring unknown pixles but considering occluded pixels
+                if ~(imgMask(x,y)==0 && imgNum<=size(trainImageList,2))%ignoring unknown pixles but considering occluded pixels
                     pCount=pCount+1;
                     tmpCount=0;% always reachs to m-1
                     for j=1:k %index of secondary matcher
@@ -164,7 +178,7 @@ for imgNum=1:size(imagesList,2)
         end
     end
     totalPCount=pCount;
-    unknownMask=imgGT~=0;
+    unknownMask=imgMask~=0;
     if imgNum<=size(trainImageList,2)
         trainCount=trainCount+sum(unknownMask(:));
     end
@@ -201,8 +215,9 @@ for i=1:k
 %     'MergeLeaves','on'
 %     'MinLeafSize',MinLS
 %     'NumPredictorsToSample',NumPTS 
-    RFs(i).model=compact (TreeBagger(treesCount,X,Y));
-    %RFs(i).treeErrors = oobError(RFs(i).model);%out of bag error
+    rfModel=TreeBagger(treesCount,X,Y,'MinLeafSize',MinLS,'NumPredictorsToSample',NumPTS,'OOBPrediction','on');
+    RFs(i).model=compact(rfModel);
+    RFs(i).treeErrors = mean(oobError(rfModel));%out of bag error
     %tr10 = RFs(i).model.Trees{10};
     %view(tr10,'Mode','graph');
 end
@@ -262,6 +277,7 @@ for testImgNum=1:size(imgPixelCountTest,2)
     %new ensemble stereo matching performance measure!
     %BestPossibleError;
 end
-clear alldisps alldispsDif X Y roc pers imgGT imgNum i j x y labels confidence ind1 ind2 imgW imgH ind val
+save (['RunResults\run_' num2str(1) '.mat'],'Results');
 
+clear alldisps alldispsDif X Y roc pers imgGT imgNum i j x y labels confidence ind1 ind2 imgW imgH ind val
 load chirp; sound(y,Fs);	display('Job Done.');

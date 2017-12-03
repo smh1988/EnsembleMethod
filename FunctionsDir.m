@@ -86,7 +86,7 @@ synthFunc{5}=str2func('saltnPepper');
 %usage:
 %cmNum = [ 3 5 6 7] ;
 %select desired Confidence Measures from the list below and put its number in the list
-%   1-AML  2-DB 3-DD 4-HGM 5-LRC 6-LRD 7-MED 8-MM
+%   1-AML  2-DB 3-DD 4-HGM 5-LRC 6-LRD 7-MED 8-MM 9-DD2 10-LRC2
 %[ValueMapL]=cfFunc{sNum}(imgL,imgR,ratio);
 %TODO: getting measures from right images
 
@@ -99,3 +99,5 @@ cmFunc{5}=str2func('LRC');   %Left Right Consistency map
 cmFunc{6}=str2func('LRD');   %Left–Right Difference
 cmFunc{7}=str2func('MED');   %Difference with Median Disparity
 cmFunc{8}=str2func('MM');    %Maximum Margin
+cmFunc{9}=str2func('DD2');   %
+cmFunc{10}=str2func('LRC2'); %
