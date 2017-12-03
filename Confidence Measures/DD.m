@@ -1,6 +1,6 @@
 function [ distanceMap ] = DD( imgDisparity )
 %DD Distance from discontinuity
-%   not fully tested yet!
+%   to left and right discontinuity
 
 discontinuityMap=zeros(size(imgDisparity,2),size(imgDisparity,1));
 tmpDisp=padarray(imgDisparity',[1 1],'replicate');

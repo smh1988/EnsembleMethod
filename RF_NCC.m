@@ -35,9 +35,23 @@ display ('calculating disparities...');
 data=struct;
 dispData=struct;
 errThreshold=1; %error threshold                                  %<<<-----------------------HARD CODED
+
 %real image mumbers in AllImages
-trainImageList=[710];%[708,709];%[702:710, 711:719]; [91:187];        %<<<-----------------------HARD CODED
-testImageList=710;%[693:701]; [188:284];                          %<<<-----------------------HARD CODED
+fold=0;                                                        %<<<-----------------------HARD CODED
+switch fold
+    case 1
+        trainImageList=[702:710, 711:719];
+        testImageList=693:701;
+    case 2
+        trainImageList=[693:701, 711:719];
+        testImageList=702:710;
+    case 3
+        trainImageList=[693:701, 702:710];
+        testImageList=711:719;
+    otherwise
+        trainImageList=[708,709];                                   %<<<-----------------------HARD CODED
+        testImageList=[710];                                        %<<<-----------------------HARD CODED
+end
 imagesList = [ trainImageList ,testImageList];
 
 for imgNum=1:size(imagesList,2) %local image numbers
