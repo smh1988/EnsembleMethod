@@ -10,7 +10,7 @@
 close all;
 clear all;
 clc;
-tic;
+
 %loading image names and locations
 DatasetDir;
 
@@ -31,9 +31,9 @@ cmNum = [ 3 5 7] ;
 % fun=str2func('EvaluateWeights');
 % global finalScores k imgPixelCountTest imgPixelCountTrain dispData AllImages imagesList errThreshold
 
-maxRun=3;
+maxRun=1;
 treesCount=50;
-MinLS=5000;
+MinLS=1000;
 NumPTS=1;
 
 
@@ -57,8 +57,8 @@ switch fold
         trainImageList=[693:701, 702:710];
         testImageList=711:719;
     otherwise
-        trainImageList=[702];                                   %<<<-----------------------HARD CODED
-        testImageList=[705];                                        %<<<-----------------------HARD CODED
+        trainImageList=[708,709];                                   %<<<-----------------------HARD CODED
+        testImageList=[710];                                        %<<<-----------------------HARD CODED
 end
 imagesList = [ trainImageList ,testImageList];
 
@@ -158,7 +158,6 @@ for imgNum=1:size(imagesList,2)
                     input(pCount,6,i)=squeeze(LRC(x,y,i));%LRC
                     input(pCount,7,i)=sum (input(pCount,1:tmpCount,i)==1);%TS
                     input(pCount,8,i)=squeeze(MED(x,y,i));
-                    class(pCount,i)= truePixels(x,y);%whether the disparity assigned to that pixel was correct (1) or not (0)
                     
                     %using other features of other matchers
                     %                 fInd=8;
@@ -173,6 +172,7 @@ for imgNum=1:size(imagesList,2)
                     %                         input(pCount,fInd,i)=squeeze(MED(x,y,j))*ai;%aiMED
                     %                     end
                     %                 end
+                    class(pCount,i)= truePixels(x,y);%whether the disparity assigned to that pixel was correct (1) or not (0)
                 end
             end
         end
@@ -211,14 +211,14 @@ for i=1:k
     X=trainInput(:,:,i);
     Y=trainClass(:,i);
     display(['training RF number ' num2str(i)]);
-    %     'OOBPrediction','on'
-    %     'MergeLeaves','on'
-    %     'MinLeafSize',MinLS
-    %     'NumPredictorsToSample',NumPTS
+%     'OOBPrediction','on'
+%     'MergeLeaves','on'
+%     'MinLeafSize',MinLS
+%     'NumPredictorsToSample',NumPTS 
     bestoob=1;
     for run=1:maxRun
-        rfModel=TreeBagger(treesCount,X,Y,'OOBPrediction','on');
-        oobErr=mean(oobError(rfModel))
+        rfModel=TreeBagger(treesCount,X,Y,'MinLeafSize',MinL,'OOBPrediction','on');
+        oobErr=mean(oobError(rfModel));
         if oobErr<bestoob
             RFs(i).model=compact(rfModel);
             RFs(i).treeErrors = oobErr;%out of bag error
@@ -238,7 +238,7 @@ for i=1:k
     finalScores(i,:)=confidence(:,2);
     %finalLabels(i,:)=labels;
 end
-finalScores=PAV(finalScores);
+%finalScores=PAV(finalScores);
 [values, indices]=max(finalScores);
 
 % PSO Optimization
@@ -280,7 +280,7 @@ for testImgNum=1:size(imgPixelCountTest,2)
     Results(testImgNum).ROC=roc;
     %The trapz function overestimates the value of the integral when f(x) is concave up.
     Results(testImgNum).AUC=GetAUC(roc,pers); %perfect AUC is err-(1-err)*ln(1-err)
-    tmpComo;
+    
     %new ensemble stereo matching performance measure!
     %BestPossibleError;
 end
@@ -288,4 +288,4 @@ save (['RunResults\run_' num2str(fold) '.mat'],'Results');
 save (['RunResults\rf_run_' num2str(fold) '.mat'],'RFs');
 
 clear alldisps alldispsDif X Y roc pers imgGT imgNum i j x y labels confidence ind1 ind2 imgW imgH ind val
-load chirp; sound(y,Fs);	display('Job Done.'); toc;
+load chirp; sound(y,Fs);	display('Job Done.');
