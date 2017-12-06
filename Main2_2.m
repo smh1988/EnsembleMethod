@@ -22,7 +22,7 @@ algosNum = [ 4 5 9 10 11] ;                                 %<<<----------------
 %1-ADSM  2-ARWSM 3-BMSM  4-BSM   5-ELAS  6-FCVFSM   7-SGSM  8-SSCA  9-WCSM
 %10-MeshSM 11-NCC
 
-cmNum = [ 3 5 7] ;
+cmNum = [ 7 9 10] ;
 %select desired Confidence Measures from the list below and put its number in the list
 %   1-AML  2-DB 3-DD 4-HGM 5-LRC 6-LRD 7-MED 8-MM
 
@@ -36,13 +36,14 @@ treesCount=50;
 MinLS=1000;
 NumPTS=1;
 
+AgreementThreshold=1; % to extract ai features
+errThreshold=1; %error threshold for disparity errors
 
 %% reading or calculating errors for images (left and right)
 
 display ('calculating disparities...');
 data=struct;
 dispData=struct;
-errThreshold=1; %error threshold                            %<<<-----------------------HARD CODED
 
 %real image mumbers in AllImages
 fold=0;                                                        %<<<-----------------------HARD CODED
@@ -58,7 +59,7 @@ switch fold
         testImageList=711:719;
     otherwise
         trainImageList=[708,709];                                   %<<<-----------------------HARD CODED
-        testImageList=[710];                                        %<<<-----------------------HARD CODED
+        testImageList=[707];                                        %<<<-----------------------HARD CODED
 end
 imagesList = [ trainImageList ,testImageList];
 
@@ -110,8 +111,8 @@ for imgNum=1:size(imagesList,2)
         for j=i:k
             if i~=j
                 diff=abs(dispData(i,imgNum).left-dispData(j,imgNum).left);
-                diff(diff<=3)=1;%ai threshold
-                diff(diff>3)=-1;
+                diff(diff<=AgreementThreshold)=1;%ai threshold
+                diff(diff>AgreementThreshold)=-1;
                 agreementMat(i,j).diff=diff;
                 agreementMat(j,i).diff=diff;
             else
@@ -142,7 +143,6 @@ for imgNum=1:size(imagesList,2)
         display(['making data for algorithm number ', num2str(i)]);
         for x=1:size(dispData(i,imgNum).left,1)
             for y=1:size(dispData(i,imgNum).left,2)
-                %FIX: considering non-occluded pixels
                 %in 2016-correctness.. Occluded pixels are ignored during training.
                 if ~(imgMask(x,y)==0 && imgNum<=size(trainImageList,2))%ignoring unknown pixles but considering occluded pixels
                     pCount=pCount+1;
@@ -158,7 +158,7 @@ for imgNum=1:size(imagesList,2)
                     input(pCount,6,i)=squeeze(LRC(x,y,i));%LRC
                     input(pCount,7,i)=sum (input(pCount,1:tmpCount,i)==1);%TS
                     input(pCount,8,i)=squeeze(MED(x,y,i));
-                    
+                    class(pCount,i)= truePixels(x,y);%whether the disparity assigned to that pixel was correct (1) or not (0)
                     %using other features of other matchers
                     %                 fInd=8;
                     %                 for j=1:m %index of secondary matcher
@@ -172,7 +172,7 @@ for imgNum=1:size(imagesList,2)
                     %                         input(pCount,fInd,i)=squeeze(MED(x,y,j))*ai;%aiMED
                     %                     end
                     %                 end
-                    class(pCount,i)= truePixels(x,y);%whether the disparity assigned to that pixel was correct (1) or not (0)
+                    
                 end
             end
         end
@@ -187,7 +187,6 @@ end
 clear width height agreementMat DD LRC MED imgGT pCount tmpCount diff
 
 
-%% TreeBagger
 %% TreeBagger
 %imgPixelCountTrain=imgPixelCount(1:size(trainImageList,2));
 imgPixelCountTest=imgPixelCount(1+size(trainImageList,2):end);
@@ -217,7 +216,7 @@ for i=1:k
 %     'NumPredictorsToSample',NumPTS 
     bestoob=1;
     for run=1:maxRun
-        rfModel=TreeBagger(treesCount,X,Y,'MinLeafSize',MinL,'OOBPrediction','on');
+        rfModel=TreeBagger(treesCount,X,Y,'MinLeafSize',MinLS,'OOBPrediction','on');
         oobErr=mean(oobError(rfModel));
         if oobErr<bestoob
             RFs(i).model=compact(rfModel);
