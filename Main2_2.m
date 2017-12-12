@@ -38,7 +38,7 @@ NumPTS=1;
 
 AgreementThreshold=1; % to extract ai features
 errThreshold=1; %error threshold for disparity errors
-
+addpath('PostProcessing/FastPD');   %MRF
 %% reading or calculating errors for images (left and right)
 
 display ('calculating disparities...');
@@ -58,8 +58,8 @@ switch fold
         trainImageList=[693:701, 702:710];
         testImageList=711:719;
     otherwise
-        trainImageList=[708,709];                                   %<<<-----------------------HARD CODED
-        testImageList=[707];                                        %<<<-----------------------HARD CODED
+        trainImageList=[708,707];                                   %<<<-----------------------HARD CODED
+        testImageList=[709];                                        %<<<-----------------------HARD CODED
 end
 imagesList = [ trainImageList ,testImageList];
 
@@ -238,24 +238,7 @@ for i=1:k
     %finalLabels(i,:)=labels;
 end
 %finalScores=PAV(finalScores);
-[values, indices]=max(finalScores);
-
-% PSO Optimization
-% FIX: This part should optimize algoW over train images
-% lb=zeros(k,1);
-% ub=ones(k,1);
-% penalty=0;
-% popsize=20;
-% maxiter=50;
-% maxrun=2;
-% algoW = PartSwamOpt(fun, [], [], lb, ub, penalty, popsize, maxiter, maxrun);
-% 
-% weightedScores=zeros(k,imgPixelCountTest);
-% for w=1:k;
-%     weightedScores(w,:)=algoW(w)*finalScores(w,:);
-% end
-% [values, indices]=max(weightedScores);
-
+%[values, indices]=max(finalScores);
 
 %getting results per image
 Results=struct;
@@ -265,20 +248,45 @@ for testImgNum=1:size(imgPixelCountTest,2)
     imgNum=testImgNum+size(trainImageList,2);
     [imgW ,imgH]=size(dispData(1,imgNum).left);
     
-    Results(testImgNum).Indices=reshape(indices(1+ind1:ind2),[imgH imgW ])';
-    Results(testImgNum).Values=reshape(values(1+ind1:ind2),[imgH imgW ])';
-    finalDisp=zeros(imgW,imgH);
-    for x=1:imgW
-        for y=1:imgH
-            finalDisp(x,y)=dispData(Results(testImgNum).Indices(x,y),imgNum).left(x,y);
-        end
+    disrange=85;
+    scoreVolume=zeros(imgW,imgH,k);
+    for i=1:k
+        scoreVolume(:,:,i)=reshape(finalScores(i,1+ind1:ind2),[imgH imgW ])';
     end
+    CostVolume=Score2Cost(scoreVolume,dispData(:,imgNum),disrange); 
+    
+    %minimum matching cost and WTA
+    [ Cost ,finalDisp]=min(CostVolume,[],3);
+    Cost=-Cost;%this could be also a confidence measure 
+    
     Results(testImgNum).FinalDisp=finalDisp;
     Results(testImgNum).Error=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp,errThreshold);
-    [roc,pers]=GetROC(AllImages(imagesList(imgNum)),finalDisp,Results(testImgNum).Values,errThreshold);
-    Results(testImgNum).ROC=roc;
+    
+    
+    % GCP
+    imageData=imread(AllImages(imagesList(imgNum)).LImage);
+    GCPMask=zeros(imgW,imgH);
+    for i=1:imgW
+        for j=1:imgH
+            if(Cost(i,j)>0.85)
+                GCPMask(i,j)=1;
+                newCost=reshape( CostVolume(i,j,:),[],1);
+                [minValue, minIndex]=min(newCost);
+                newCost=ones(1,disrange).*2; %FIX
+                newCost(minIndex)=minValue;
+                CostVolume(i,j,:)=newCost;
+            end
+        end
+    end
+    
+    %Refinement: MRF (FastPD)
+    finalDispMRF=double(FastPD(CostVolume,disrange ,finalDisp,Cost,imageData));
+    Results(testImgNum).FinalDispMRF=finalDispMRF;
+    Results(testImgNum).ErrorMRF=EvaluateDisp(AllImages(imagesList(imgNum)),finalDispMRF,errThreshold);
+    %[roc,pers]=GetROC(AllImages(imagesList(imgNum)),finalDisp,Results(testImgNum).Values,errThreshold);
+    %Results(testImgNum).ROC=roc;
     %The trapz function overestimates the value of the integral when f(x) is concave up.
-    Results(testImgNum).AUC=GetAUC(roc,pers); %perfect AUC is err-(1-err)*ln(1-err)
+    %Results(testImgNum).AUC=GetAUC(roc,pers); %perfect AUC is err-(1-err)*ln(1-err)
     
     %new ensemble stereo matching performance measure!
     %BestPossibleError;
