@@ -58,8 +58,8 @@ switch fold
         trainImageList=[693:701, 702:710];
         testImageList=711:719;
     otherwise
-        trainImageList=[708,707];                                   %<<<-----------------------HARD CODED
-        testImageList=[710];                                        %<<<-----------------------HARD CODED
+        trainImageList=[];                                   %<<<-----------------------HARD CODED
+        testImageList=[709];                                        %<<<-----------------------HARD CODED
 end
 imagesList = [ trainImageList ,testImageList];
 
@@ -280,7 +280,7 @@ for testImgNum=1:size(imgPixelCountTest,2)
     end
     
     %Refinement: MRF (FastPD)
-    finalDispMRF=double(FastPDf(CostVolume,disrange ,finalDisp,imageData));
+    finalDispMRF=double(FastPDf(CostVolume,disrange,imageData));
     Results(testImgNum).FinalDispMRF=finalDispMRF;
     Results(testImgNum).ErrorMRF=EvaluateDisp(AllImages(imagesList(imgNum)),finalDispMRF,errThreshold);
     %[roc,pers]=GetROC(AllImages(imagesList(imgNum)),finalDisp,Results(testImgNum).Values,errThreshold);

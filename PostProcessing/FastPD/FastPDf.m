@@ -1,6 +1,6 @@
-function MRF_labeling = FastPDf(CostVolume, numlabels ,dispImg,imgL3D)
+function MRF_labeling = FastPDf(CostVolume, numlabels,imgL)
 %https://github.com/srdjankrstic/defocus
-lambda=2;
+lambda=3.6;
 
 input_file = tempname('test\tmp\');
 output_file = tempname('test\tmp\');
@@ -10,11 +10,11 @@ if fid == -1
     error(['Cannot open file ' results_fname]);
 end
 
-h = size(imgL3D, 1);
-w = size(imgL3D, 2);
+h = size(imgL, 1);
+w = size(imgL, 2);
 numpoints = h * w;
 numpairs = 2 * h * w - h - w;
-maxIters = 100;
+maxIters = 10;
 type = 'float';
 
 fwrite(fid, numpoints, 'int');
@@ -42,11 +42,10 @@ CostVolume = normalize(CostVolume);
 lcosts=CostVolume(:);
 fwrite(fid,lcosts, type);
 
-
-p=double(imgL3D );
+p=double(imgL );
 wcosts=zeros(numpairs,1);
 edgeNum=0;
-[cost, ~]=min(CostVolume,[],3);
+[cost, dispImg]=min(CostVolume,[],3);
 for i=1:numpoints
     if nodes(i).x < h
     tail=i;
@@ -72,31 +71,24 @@ for i=1:numpoints
 end
 
 % inter-label costs (0 if same, 1 if adjacent, 2 otherwise)
-% dist = 2 * ones(numlabels, numlabels) - ...
-%     2 * eye(numlabels) - ...
-%     1 * diag(ones(numlabels - 1, 1), 1) - ...
-%     1 * diag(ones(numlabels - 1, 1), -1);
-dist=ones(numlabels, numlabels)-eye(numlabels);
-
-%	fread( _dist  , sizeof(Real), _numlabels*_numlabels, fp );
+dist = 2 * ones(numlabels, numlabels) - ...
+    2 * eye(numlabels) - ...
+    1 * diag(ones(numlabels - 1, 1), 1) - ...
+    1 * diag(ones(numlabels - 1, 1), -1);
+% dist=ones(numlabels, numlabels)-eye(numlabels);
 fwrite(fid, dist, type);
 
 fwrite(fid,wcosts*lambda, type);
 fclose(fid);
 
 % run FastPD
-commandStr = ['"'  mfilename('fullpath') '/../FastPDf.exe" ' input_file ' ' output_file]
+commandStr = ['"'  mfilename('fullpath') '/../FastPDf.exe" ' input_file ' ' output_file];
 result=system(commandStr);
 if(result~=0)
     error(['FastPDf.exe return error:' num2str(result)]);
 end
 MRF_labeling = get_MRF_labeling(output_file);
 MRF_labeling = reshape(MRF_labeling, h,w)+1;
-%    MRF_labeling = max(max(MRF_labeling)) - MRF_labeling;
 
-% clean up
-%if (~DEBUG)
 delete(input_file, output_file);
-%end
-
 end
