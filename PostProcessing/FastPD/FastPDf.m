@@ -1,6 +1,11 @@
 function MRF_labeling = FastPDf(CostVolume, numlabels,imgL)
 %https://github.com/srdjankrstic/defocus
-lambda=3.6;
+[cost, ~]=min(CostVolume,[],3);
+
+alpha=0.0045;
+betha=24;
+lambda=alpha*exp(betha*std2(cost));%Dynamic Lambda
+%FIX: the Wpq itself is an exponential function.
 
 input_file = tempname('test\tmp\');
 output_file = tempname('test\tmp\');

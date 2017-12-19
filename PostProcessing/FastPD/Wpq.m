@@ -2,7 +2,7 @@ function [result  ] = Wpq(p,q,dp,dq)
 %this function for compute (10) formula
 p=p(:);
 q=q(:);
-result=0;
+result=0; %FIX: the MRF already has inter-label costs
 if(dp==dq)
     return;
 end

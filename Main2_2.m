@@ -36,8 +36,13 @@ treesCount=50;
 MinLS=1000;
 NumPTS=1;
 
-AgreementThreshold=1; % to extract ai features
-errThreshold=1; %error threshold for disparity errors
+AgreementThreshold=1;   %to extract ai features
+ErrorThreshold=1;       %error threshold for disparity errors
+
+%Lambda=0.1;
+%GammaC=3.6;
+Cgcp=2;
+ConfidenceThreshold=0.85;
 addpath('PostProcessing/FastPD');   %MRF
 %% reading or calculating errors for images (left and right)
 
@@ -59,7 +64,7 @@ switch fold
         testImageList=711:719;
     otherwise
         trainImageList=[];                                   %<<<-----------------------HARD CODED
-        testImageList=[709];                                        %<<<-----------------------HARD CODED
+        testImageList=[710];                                        %<<<-----------------------HARD CODED
 end
 imagesList = [ trainImageList ,testImageList];
 
@@ -137,7 +142,7 @@ for imgNum=1:size(imagesList,2)
     for i=1:k % so, primary matcher is i
         pCount=totalPCount;%number of pixels (samples)
         %truePixels = abs(dispData(i,imgNum).left - imgGT) <= errThreshold;
-        [~,imgMask,badPixels]=EvaluateDisp(AllImages(imagesList(imgNum)),dispData(i,imgNum).left,errThreshold);
+        [~,imgMask,badPixels]=EvaluateDisp(AllImages(imagesList(imgNum)),dispData(i,imgNum).left,ErrorThreshold);
         truePixels=imgMask.*(~badPixels);
         %making data
         display(['making data for algorithm number ', num2str(i)]);
@@ -246,6 +251,7 @@ for testImgNum=1:size(imgPixelCountTest,2)
     ind1=sum(imgPixelCountTest(1:testImgNum-1));
     ind2=ind1+imgPixelCountTest(testImgNum);
     imgNum=testImgNum+size(trainImageList,2);
+    display(['Getting Results for Image=' num2str(imagesList(imgNum))]);
     [imgW ,imgH]=size(dispData(1,imgNum).left);
     
     disrange=85;
@@ -260,19 +266,18 @@ for testImgNum=1:size(imgPixelCountTest,2)
     Cost=-Cost;%this could be also a confidence measure 
     
     Results(testImgNum).FinalDisp=finalDisp;
-    Results(testImgNum).Error=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp,errThreshold);
-    
+    Results(testImgNum).Error=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp,ErrorThreshold);
     
     % GCP
     imageData=imread(AllImages(imagesList(imgNum)).LImage);
     GCPMask=zeros(imgW,imgH);
     for i=1:imgW
         for j=1:imgH
-            if(Cost(i,j)>0.85)
+            if(Cost(i,j)>ConfidenceThreshold)
                 GCPMask(i,j)=1;
                 newCost=reshape( CostVolume(i,j,:),[],1);
                 [minValue, minIndex]=min(newCost);
-                newCost=ones(1,disrange).*2; %FIX
+                newCost=ones(1,disrange).*Cgcp; %FIX
                 newCost(minIndex)=minValue;
                 CostVolume(i,j,:)=newCost;
             end
@@ -282,7 +287,7 @@ for testImgNum=1:size(imgPixelCountTest,2)
     %Refinement: MRF (FastPD)
     finalDispMRF=double(FastPDf(CostVolume,disrange,imageData));
     Results(testImgNum).FinalDispMRF=finalDispMRF;
-    Results(testImgNum).ErrorMRF=EvaluateDisp(AllImages(imagesList(imgNum)),finalDispMRF,errThreshold);
+    Results(testImgNum).ErrorMRF=EvaluateDisp(AllImages(imagesList(imgNum)),finalDispMRF,ErrorThreshold);
     %[roc,pers]=GetROC(AllImages(imagesList(imgNum)),finalDisp,Results(testImgNum).Values,errThreshold);
     %Results(testImgNum).ROC=roc;
     %The trapz function overestimates the value of the integral when f(x) is concave up.
@@ -294,5 +299,5 @@ end
 save (['RunResults\run_' num2str(fold) '.mat'],'Results');
 save (['RunResults\rf_run_' num2str(fold) '.mat'],'RFs');
 
-clear alldisps alldispsDif X Y roc pers imgGT imgNum i j x y labels confidence ind1 ind2 imgW imgH ind val
+clear alldisps alldispsDif X Y roc pers imgGT i j x y labels confidence ind1 ind2 imgW imgH ind val
 load chirp; sound(y,Fs);	display('Job Done.');
