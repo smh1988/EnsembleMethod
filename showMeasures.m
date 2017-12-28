@@ -1,0 +1,11 @@
+figure;
+subplot(2,5,1);imshow(DD,[]);   title('DD');
+subplot(2,5,2);imshow(LRC,[]);  title('LRC');
+subplot(2,5,3);imshow(MED,[]);  title('MED');
+subplot(2,5,4);imshow(MM,[]);   title('MM');
+subplot(2,5,5);imshow(LRD,[-1 1]);  title('LRD');
+subplot(2,5,6);imshow(AML,[-1 1]);  title('AML');
+subplot(2,5,7);imshow(dispData(1,imgNum).Cost,[]);title('NCC');
+subplot(2,5,8);imshow(imgMask,[]);title('Mask');
+subplot(2,5,9);imshow(badPixels,[]);title('bad Pixels');
+subplot(2,5,10);imshow(imgL);title('left image');
