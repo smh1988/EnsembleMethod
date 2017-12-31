@@ -190,7 +190,7 @@ testInput=input(1+trainCount:totalPCount,:,:);
 clear input class
 
 %locating trained random forest models for all k matchers
-rftreesFilename=['RunResults\5-rf kms ai threshold 1 minLS 1000\rf_run_' num2str(2) '.mat'];
+rftreesFilename=['RunResults\5-rf kms ai threshold 1 minLS 1000\rf_run_' num2str(fold) '.mat'];
 if exist(rftreesFilename,'file')
     load(rftreesFilename);
 else
