@@ -44,7 +44,7 @@ data=struct;
 dispData=struct;
 
 %real image mumbers in AllImages
-fold=3;                                                        %<<<-----------------------HARD CODED
+fold=0;                                                        %<<<-----------------------HARD CODED
 switch fold
     case 1
         trainImageList=[702:710, 711:719];
@@ -56,8 +56,8 @@ switch fold
         trainImageList=[693:701, 702:710];
         testImageList=711:719;
     otherwise%debug fold
-        trainImageList=[];                                   %<<<-----------------------HARD CODED
-        testImageList=[709];                                        %<<<-----------------------HARD CODED
+        trainImageList=[710];                                   %<<<-----------------------HARD CODED
+        testImageList=[710];                                        %<<<-----------------------HARD CODED
 end
 imagesList = [ trainImageList ,testImageList];
 
@@ -79,10 +79,16 @@ for imgNum=1:size(imagesList,2) %local image numbers
             %data.ErrorRates=EvaluateDisp(AllImages(imagesList(imgNum)),double(dispL),errThreshold);
             save(fileName,'data');
         end
-        %err(algoCount,imgNum)=EvaluateDisp(AllImages(imagesList(imgNum)),data.DisparityLeft,errThreshold);%data.ErrorRates;
+        errData(algoCount,imgNum)=EvaluateDisp(AllImages(imagesList(imgNum)),data.DisparityLeft,ErrorThreshold);%data.ErrorRates;
+        timeData(algoCount,imgNum)=data.TimeCosts;
         dispData(algoCount,imgNum).left=data.DisparityLeft;
         dispData(algoCount,imgNum).right=data.DisparityRight;
     end
+    
+    width=size(dispData(1,imgNum).left,1);
+    height=size(dispData(1,imgNum).left,2);
+    imgPixelCount(imgNum)=width*height;
+    mTC(imgNum)=sum(timeData(:,imgNum))/( imgPixelCount(imgNum)/1024);
     display([num2str(imagesList(imgNum)) 'done']);
 end
 clear algoCount aNum data fileName
@@ -103,6 +109,7 @@ input=zeros(samplesNum,8,k);%ai , DD , LRC , TS, MED               %<<<---------
 class=zeros(samplesNum,k);
 for imgNum=1:size(imagesList,2)
     display(['working on img ' num2str(imagesList(imgNum)) ]);
+    tic;
     %pre-calculting all agreement features =ai
     agreementMat=struct;
     for i=1:k
@@ -130,6 +137,7 @@ for imgNum=1:size(imagesList,2)
         MED(:,:,i)=cmFunc{7}(dispData(i,imgNum).left);
     end
     
+    fTC(imgNum)=toc/( imgPixelCount(imgNum)/1024); %feature extraction time cost(second per mega pixel)
     %imgGT = GetGT(AllImages(imagesList(imgNum)));
     
     for i=1:k % so, primary matcher is i
@@ -144,18 +152,19 @@ for imgNum=1:size(imagesList,2)
                 %in 2016-correctness.. Occluded pixels are ignored during training.
                 if ~(imgMask(x,y)==0 && imgNum<=size(trainImageList,2))%ignoring unknown pixles but considering occluded pixels
                     pCount=pCount+1;
+                    
+                    %only using its own features                %<<<-----------------------HARD CODED
+                    input(pCount,1,i)=squeeze(DD(x,y,i));%DD
+                    input(pCount,2,i)=squeeze(LRC(x,y,i));%LRC
+                    input(pCount,3,i)=squeeze(MED(x,y,i));
                     tmpCount=0;% always reachs to m-1
                     for j=1:k %index of secondary matcher
                         if j~=i
                             tmpCount=tmpCount+1;
-                            input(pCount,tmpCount,i)=agreementMat(j,i).diff(x,y);%ai
+                            input(pCount,3+tmpCount,i)=agreementMat(j,i).diff(x,y);%ai
                         end
                     end
-                    %only using its own features                %<<<-----------------------HARD CODED
-                    input(pCount,5,i)=squeeze(DD(x,y,i));%DD
-                    input(pCount,6,i)=squeeze(LRC(x,y,i));%LRC
-                    input(pCount,7,i)=sum (input(pCount,1:tmpCount,i)==1);%TS
-                    input(pCount,8,i)=squeeze(MED(x,y,i));
+                    input(pCount,4+tmpCount,i)=sum (input(pCount,1:tmpCount,i)==1);%TS
                     class(pCount,i)= truePixels(x,y);%whether the disparity assigned to that pixel was correct (1) or not (0)
                 end
             end
@@ -176,11 +185,11 @@ clear width height agreementMat DD LRC MED imgGT pCount tmpCount diff
 imgPixelCountTest=imgPixelCount(1+size(trainImageList,2):end);
 
 % is permuting needed?
-% permutedIndices=randperm( trainCount);
-% portion=1;%in 0.25 the avg error increses 0.0002 and avg AUC increses 0.0006 (for 702:711)
-% sampleCount=uint32( portion*trainCount);
-% trainIndices=permutedIndices (1:sampleCount);
-trainIndices=1:trainCount;
+permutedIndices=randperm( trainCount);
+portion=0.3;%in 0.25 the avg error increses 0.0002 and avg AUC increses 0.0006 (for 702:711)
+sampleCount=uint32( portion*trainCount);
+trainIndices=permutedIndices (1:sampleCount);
+%trainIndices=1:trainCount;
 
 %train and test sets
 trainInput=input(trainIndices,:,:);
@@ -203,14 +212,16 @@ else
         %     'MergeLeaves','on'
         %     'MinLeafSize',MinLS
         %     'NumPredictorsToSample',NumPTS
+        %       OOBPredictorImportance
         bestoob=1;
         for run=1:maxRun
-            rfModel=TreeBagger(treesCount,X,Y,'MinLeafSize',MinLS,'OOBPrediction','on');
+            rfModel=TreeBagger(treesCount,X,Y,'MinLeafSize',MinLS,'OOBPrediction','on','OOBPredictorImportance','on');
             oobErr=mean(oobError(rfModel));
             if oobErr<bestoob
                 RFs(i).model=compact(rfModel);
                 RFs(i).treeErrors = oobErr;%out of bag error
             end
+            RFs(i).VarImportance=rfModel.OOBPermutedPredictorDeltaError;
         end
         %tr10 = RFs(i).model.Trees{10};
         %view(tr10,'Mode','graph');
@@ -219,7 +230,7 @@ end
 %testing...
 display('testing...');
 finalScores=zeros(k,sum(imgPixelCountTest));
-
+tic;
 for i=1:k
     [~,confidence] = predict(RFs(i).model,testInput(:,:,i));
     %[RFs(i).labels,RFs(i).scores] = predict(RFs(i).model,testInput(:,:,i),'Trees',10:20);
@@ -253,33 +264,35 @@ for testImgNum=1:size(imgPixelCountTest,2)
     Results(testImgNum).Error=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp,ErrorThreshold);
     
     % GCP
-    imageData=imread(AllImages(imagesList(imgNum)).LImage);
-    GCPMask=zeros(imgW,imgH);
-    for i=1:imgW
-        for j=1:imgH
-            if(Cost(i,j)>ConfidenceThreshold)
-                GCPMask(i,j)=1;
-                newCost=reshape( CostVolume(i,j,:),[],1);
-                [minValue, minIndex]=min(newCost);
-                newCost=ones(1,disrange).*Cgcp; %FIX
-                newCost(minIndex)=minValue;
-                CostVolume(i,j,:)=newCost;
-            end
-        end
-    end
+%     imageData=imread(AllImages(imagesList(imgNum)).LImage);
+%     GCPMask=zeros(imgW,imgH);
+%     for i=1:imgW
+%         for j=1:imgH
+%             if(Cost(i,j)>ConfidenceThreshold)
+%                 GCPMask(i,j)=1;
+%                 newCost=reshape( CostVolume(i,j,:),[],1);
+%                 [minValue, minIndex]=min(newCost);
+%                 newCost=ones(1,disrange).*Cgcp; %FIX
+%                 newCost(minIndex)=minValue;
+%                 CostVolume(i,j,:)=newCost;
+%             end
+%         end
+%     end
     
     %Refinement: MRF (FastPD)
-    finalDispMRF=double(FastPDf(CostVolume,disrange,imageData));
-    Results(testImgNum).FinalDispMRF=finalDispMRF;
-    Results(testImgNum).ErrorMRF=EvaluateDisp(AllImages(imagesList(imgNum)),finalDispMRF,ErrorThreshold);
-    %[roc,pers]=GetROC(AllImages(imagesList(imgNum)),finalDisp,Results(testImgNum).Values,errThreshold);
+    %finalDispMRF=double(FastPDf(CostVolume,disrange,imageData));
+    %Results(testImgNum).FinalDispMRF=finalDispMRF;
+    %Results(testImgNum).ErrorMRF=EvaluateDisp(AllImages(imagesList(imgNum)),finalDispMRF,ErrorThreshold);
+    [roc,pers]=GetROC(AllImages(imagesList(imgNum)),finalDisp,Cost,ErrorThreshold);
     %Results(testImgNum).ROC=roc;
     %The trapz function overestimates the value of the integral when f(x) is concave up.
-    %Results(testImgNum).AUC=GetAUC(roc,pers); %perfect AUC is err-(1-err)*ln(1-err)
+    Results(testImgNum).AUC=GetAUC(roc,pers); %perfect AUC is err-(1-err)*ln(1-err)
     
     %new ensemble stereo matching performance measure!
     %BestPossibleError;
 end
+
+eTC=toc/(sum(imgPixelCountTest)/1024);
 save (['RunResults\run_' num2str(fold) '.mat'],'Results');
 save (['RunResults\rf_run_' num2str(fold) '.mat'],'RFs');
 
