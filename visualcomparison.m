@@ -9,7 +9,7 @@ DatasetDir;
 %loading all functions in arrays
 FunctionsDir;
 
-algosNum = [ 4 5 9 10 11] ;                                 %<<<-----------------------HARD CODED
+algosNum = [ 4 5 10] ;                                 %<<<-----------------------HARD CODED
 %select desired algorithms from the list below and put its number in the list
 %1-ADSM  2-ARWSM 3-BMSM  4-BSM   5-ELAS  6-FCVFSM   7-SGSM  8-SSCA  9-WCSM
 %10-MeshSM 11-NCC
@@ -40,7 +40,7 @@ dispData=struct;
 %real image mumbers in AllImages
 
         trainImageList=[];                                   %<<<-----------------------HARD CODED
-        testImageList=[703];                                        %<<<-----------------------HARD CODED
+        testImageList=[706];                                        %<<<-----------------------HARD CODED
 imagesList = [ trainImageList ,testImageList];
 
 for imgNum=1:size(imagesList,2) %local image numbers
@@ -65,25 +65,21 @@ maxdisp=85;
 
 mymap = [239,71,111
 255,209,102
-6,214,160
-17,138,178
-74,80,155];
+17,138,178];% 255,209,102  --  74,80,155
 figure;
-xr=40:140;
-yr=200:300;
+xr=60:170;
+yr=230:320;
 ours=MiddleRes(testImageList-692).FinalDisp(xr,yr)/maxdisp;
-subplot(5,2,2);imshow(imgGT(xr,yr)/maxdisp);title('??? ????');
-subplot(5,2,1);imshow(imgL);title('????? ??');
-subplot(5,2,3);imshow( dispData(1,imgNum).left(xr,yr)/maxdisp);   title('BSM');
-subplot(5,2,4);imshow( dispData(2,imgNum).left(xr,yr)/maxdisp);   title('ELAS');
-subplot(5,2,5);imshow( dispData(3,imgNum).left(xr,yr)/maxdisp);   title('Census');
-subplot(5,2,6);imshow( dispData(4,imgNum).left(xr,yr)/maxdisp);   title('MeshStereo');
-subplot(5,2,7);imshow( dispData(5,imgNum).left(xr,yr)/maxdisp);   title('NCC');
-subplot(5,2,8);imshow( MiddleRes(testImageList-692).FinalDisp(xr,yr)/maxdisp);   title('??? ????????');
-ax1=subplot(5,2,[9,10]);
+subplot(4,2,2);imshow(imgGT(xr,yr)/maxdisp);title('Groundtruth');
+subplot(4,2,1);imshow(imgL);title('Left Image');
+subplot(4,2,3);imshow( dispData(1,imgNum).left(xr,yr)/maxdisp);   title('BSM');
+subplot(4,2,4);imshow( dispData(2,imgNum).left(xr,yr)/maxdisp);   title('ELAS');
+subplot(4,2,5);imshow( dispData(3,imgNum).left(xr,yr)/maxdisp);   title('MeshStereo');
+subplot(4,2,6);imshow( MiddleRes(testImageList-692).FinalDisp(xr,yr)/maxdisp);   title('RF-kMs');
+ax1=subplot(4,2,[7,8]);
 imshow( MiddleRes(testImageList-692).Indices(xr,yr),[]);
-title('????? ??');
+title('Winners');
 colormap(ax1,mymap/255);
 %subplot(5,2,10);imshow( badPixels(xr,yr));   title('???? ???');
-%subplot(5,2,10);imshow(occarea(xr,yr));title('????? ??????');
+%subplot(4,2,8);imshow(occarea(xr,yr));title('Occluded');
 tightfig;
