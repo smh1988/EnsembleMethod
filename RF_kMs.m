@@ -9,7 +9,7 @@ DatasetDir;
 %loading all functions in arrays
 FunctionsDir;
 
-algosNum = [ 4 5 9 10 11] ;                                 %<<<-----------------------HARD CODED
+algosNum = [ 4 5 10 ] ;                                 %<<<-----------------------HARD CODED
 %select desired algorithms from the list below and put its number in the list
 %1-ADSM  2-ARWSM 3-BMSM  4-BSM   5-ELAS  6-FCVFSM   7-SGSM  8-SSCA  9-WCSM
 %10-MeshSM 11-NCC
@@ -56,8 +56,8 @@ switch fold
         trainImageList=[693:701, 702:710];
         testImageList=711:719;
     otherwise%debug fold
-        trainImageList=[710];                                   %<<<-----------------------HARD CODED
-        testImageList=[710];                                        %<<<-----------------------HARD CODED
+        trainImageList=[];                                   %<<<-----------------------HARD CODED
+        testImageList=[714];                                        %<<<-----------------------HARD CODED
 end
 imagesList = [ trainImageList ,testImageList];
 
@@ -105,7 +105,7 @@ for imgNum=1:size(imagesList,2)
     imgPixelCount(imgNum)=width*height;
 end
 samplesNum=sum(imgPixelCount);
-input=zeros(samplesNum,8,k);%ai , DD , LRC , TS, MED               %<<<-----------------------HARD CODED
+input=zeros(samplesNum,6,k);%ai , DD , LRC , TS, MED               %<<<-----------------------HARD CODED
 class=zeros(samplesNum,k);
 for imgNum=1:size(imagesList,2)
     display(['working on img ' num2str(imagesList(imgNum)) ]);
@@ -199,7 +199,7 @@ testInput=input(1+trainCount:totalPCount,:,:);
 clear input class
 
 %locating trained random forest models for all k matchers
-rftreesFilename=['RunResults\5-rf kms ai threshold 1 minLS 1000\rf_run_' num2str(fold) '.mat'];
+rftreesFilename=['RunResults\algo subset\no(3,5)\rf_run_' num2str(fold) '.mat'];%<<<-----------------------HARD CODED
 if exist(rftreesFilename,'file')
     load(rftreesFilename);
 else
@@ -238,7 +238,7 @@ for i=1:k
     %finalLabels(i,:)=labels;
 end
 %finalScores=PAV(finalScores);
-%[values, indices]=max(finalScores);
+[~, indices]=max(finalScores);
 
 %getting results per image
 Results=struct;
@@ -260,6 +260,7 @@ for testImgNum=1:size(imgPixelCountTest,2)
     [ Cost ,finalDisp]=min(CostVolume,[],3);
     Cost=-Cost;%this could be also a confidence measure 
     
+    Results(testImgNum).Indices=reshape(indices(1+ind1:ind2),[imgH imgW ])';
     Results(testImgNum).FinalDisp=finalDisp;
     Results(testImgNum).Error=EvaluateDisp(AllImages(imagesList(imgNum)),finalDisp,ErrorThreshold);
     
