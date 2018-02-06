@@ -44,8 +44,10 @@ data=struct;
 dispData=struct;
 
 %real image mumbers in AllImages
-fold=0;                                                        %<<<-----------------------HARD CODED
-switch fold
+run=0;                                                        %<<<-----------------------HARD CODED
+imageRange=[693:719];
+imageRange=imageRange(randperm(size(imageRange,2)));
+switch run
     case 1
         trainImageList=[702:710, 711:719];
         testImageList=693:701;
@@ -55,9 +57,9 @@ switch fold
     case 3
         trainImageList=[693:701, 702:710];
         testImageList=711:719;
-    otherwise%debug fold
-        trainImageList=[];                                   %<<<-----------------------HARD CODED
-        testImageList=[714];                                        %<<<-----------------------HARD CODED
+    otherwise%3-fold
+        trainImageList=imageRange(1:18);
+        testImageList=imageRange(19:27);
 end
 imagesList = [ trainImageList ,testImageList];
 
@@ -199,7 +201,7 @@ testInput=input(1+trainCount:totalPCount,:,:);
 clear input class
 
 %locating trained random forest models for all k matchers
-rftreesFilename=['RunResults\algo subset\no(3,5)\rf_run_' num2str(fold) '.mat'];%<<<-----------------------HARD CODED
+rftreesFilename=['RunResults\algo subset\no(3,5)\rf_run_' num2str(run) '.mat'];%<<<-----------------------HARD CODED
 if exist(rftreesFilename,'file')
     load(rftreesFilename);
 else
@@ -213,8 +215,9 @@ else
         %     'MinLeafSize',MinLS
         %     'NumPredictorsToSample',NumPTS
         %       OOBPredictorImportance
+        %       InBagFraction
         bestoob=1;
-        for run=1:maxRun
+        for RFrun=1:maxRun
             rfModel=TreeBagger(treesCount,X,Y,'MinLeafSize',MinLS,'OOBPrediction','on','OOBPredictorImportance','on');
             oobErr=mean(oobError(rfModel));
             if oobErr<bestoob
@@ -294,8 +297,8 @@ for testImgNum=1:size(imgPixelCountTest,2)
 end
 
 eTC=toc/(sum(imgPixelCountTest)/1024);
-save (['RunResults\run_' num2str(fold) '.mat'],'Results');
-save (['RunResults\rf_run_' num2str(fold) '.mat'],'RFs');
+save (['RunResults\run_' num2str(run) '.mat'],'Results');
+save (['RunResults\rf_run_' num2str(run) '.mat'],'RFs');
 
 clear alldisps alldispsDif X Y roc pers imgGT i j x y labels confidence ind1 ind2 imgW imgH ind val
 load chirp; sound(y,Fs);	display('Job Done.');
