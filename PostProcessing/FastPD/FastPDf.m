@@ -4,7 +4,8 @@ function MRF_labeling = FastPDf(CostVolume, numlabels,imgL)
 
 alpha=0.0045;
 betha=24;
-lambda=alpha*exp(betha*std2(cost));%Dynamic Lambda
+lambda=alpha*exp(betha*std2(~isnan(cost)));%Dynamic Lambda
+%lambda=2.2; %static Lambda
 %FIX: the Wpq itself is an exponential function.
 
 input_file = tempname('test\tmp\');
